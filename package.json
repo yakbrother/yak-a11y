@@ -1,0 +1,35 @@
+{
+  "name": "astro-accessibility",
+  "version": "1.0.0",
+  "description": "Accessibility checker for Astro projects with detailed explanations and documentation links",
+  "main": "src/index.js",
+  "bin": {
+    "astro-a11y": "./bin/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./integration": "./src/integration.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "astro",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "axe-core"
+  ],
+  "author": "yakbrother",
+  "license": "MIT",
+  "dependencies": {
+    "@axe-core/puppeteer": "^4.7.3",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^11.0.0",
+    "puppeteer": "^21.0.0"
+  },
+  "peerDependencies": {
+    "astro": "^3.0.0"
+  }
+}

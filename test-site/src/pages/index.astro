@@ -1,0 +1,70 @@
+---
+import TestCase from '../components/TestCase.jsx';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Accessibility Test Cases</title>
+	</head>
+	<body>
+		<!-- Container without proper landmarks -->
+		<div class="container">
+			<TestCase client:load />
+		</div>
+	</body>
+</html>
+			</header>
+
+			<section>
+				<!-- Missing alt text -->
+				<img src="https://picsum.photos/200" />
+				
+				<!-- Poor color contrast -->
+				<div class="low-contrast">
+					<p>This text has poor contrast with its background</p>
+				</div>
+				
+				<!-- Non-descriptive links -->
+				<div>
+					<a href="#">Click here</a>
+					<a href="#">Read more</a>
+					<a href="#">Learn more</a>
+				</div>
+			</section>
+
+			<section>
+				<h2>Dynamic Content Testing</h2>
+				<!-- Dynamic counter with accessibility issues -->
+				<DynamicCounter client:load />
+				
+				<!-- Modal without proper ARIA attributes -->
+				<Modal client:load />
+			</section>
+
+			<section>
+				<h2>Form Testing</h2>
+				<!-- Complex form with various accessibility issues -->
+				<ComplexForm client:load />
+			</section>
+
+			<section>
+				<h2>Interactive Elements</h2>
+				<!-- Not keyboard accessible -->
+				<div onclick="alert('clicked')" class="button">
+					Clickable div without keyboard support
+				</div>
+				
+				<!-- Missing button label -->
+				<button>
+					<svg width="20" height="20" viewBox="0 0 20 20">
+						<circle cx="10" cy="10" r="10" />
+					</svg>
+				</button>
+			</section>
+		</div>
+	</body>
+</html>
