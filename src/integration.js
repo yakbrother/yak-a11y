@@ -1,4 +1,4 @@
-const { checkAccessibility } = require('./index');
+import { checkAccessibility } from './index.js';
 
 function getLocalUrl(config) {
   const host = config.server?.host ?? 'localhost';
@@ -70,33 +70,59 @@ function astroAccessibility(options = {}) {
         console.log('\nRunning accessibility checks on built site...');
         let hasViolations = false;
         try {
-          // Start http-server
+          // Start static server using sirv
+          const { default: sirv } = await import('sirv');
           const { createServer } = await import('http');
-          const { join } = await import('path');
-          const { readFile } = await import('fs/promises');
-
-          const server = createServer(async (req, res) => {
+          
+          const PORT = 5555; // Use a different port to avoid conflicts
+          const serve = sirv('dist', {
+            single: true,
+            dev: true,
+            onNoMatch: (req, res) => {
+              console.warn(`404: ${req.url}`);
+              res.statusCode = 404;
+              res.end('Not found');
+            }
+          });
+          
+          const server = createServer((req, res) => {
             try {
-              const filePath = join(config.outDir, req.url === '/' ? 'index.html' : req.url);
-              const content = await readFile(filePath);
-              res.writeHead(200);
-              res.end(content);
+              serve(req, res);
             } catch (err) {
-              res.writeHead(404);
-              res.end();
+              console.error('Server error:', err);
+              res.statusCode = 500;
+              res.end('Internal server error');
             }
           });
 
-          await new Promise(resolve => server.listen(4321, resolve));
+          server.on('error', (err) => {
+            console.error('Server error:', err);
+          });
+
+          await new Promise((resolve, reject) => {
+            server.listen(PORT, (err) => {
+              if (err) {
+                console.error('Failed to start server:', err);
+                reject(err);
+                return;
+              }
+              console.log(`Static server running on port ${PORT}`);
+              resolve();
+            });
+          });
 
           // Run checks
-          await checkAccessibility('http://localhost:4321', {
+          // Wait for hydration
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          await checkAccessibility('http://localhost:5555', {
             verbose: true,
             dynamicTesting: {
               enabled: true,
               waitForHydration: true,
               routeChanges: true,
-              ajaxTimeout: 5000
+              ajaxTimeout: 10000,
+              hydrationTimeout: 10000
             },
             astroTesting: {
               enabled: true,
@@ -125,4 +151,4 @@ function astroAccessibility(options = {}) {
   };
 }
 
-module.exports = astroAccessibility;
+export default astroAccessibility;

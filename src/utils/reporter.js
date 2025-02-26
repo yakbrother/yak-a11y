@@ -1,5 +1,5 @@
-const chalk = require('chalk');
-const Table = require('cli-table3');
+import chalk from 'chalk';
+import Table from 'cli-table3';
 
 function truncate(str, length) {
   if (!str) return '';
@@ -336,4 +336,4 @@ function getUserFriendlyImpact(impact) {
   return impacts[impact] || impact;
 }
 
-module.exports = { generateReport };
+export { generateReport };

@@ -1,6 +1,7 @@
 {
   "name": "astro-accessibility",
   "version": "1.0.0",
+  "type": "module",
   "description": "Accessibility checker for Astro projects with detailed explanations and documentation links",
   "main": "src/index.js",
   "bin": {
@@ -27,7 +28,8 @@
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
     "commander": "^11.0.0",
-    "puppeteer": "^21.0.0"
+    "puppeteer": "^21.0.0",
+    "sirv": "^3.0.1"
   },
   "peerDependencies": {
     "astro": "^3.0.0"

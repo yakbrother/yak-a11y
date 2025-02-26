@@ -1,6 +1,4 @@
-const puppeteer = require('puppeteer');
-const { AxePuppeteer } = require('@axe-core/puppeteer');
-const { generateReport } = require('./utils/reporter');
+import { generateReport } from './utils/reporter.js';
 
 async function waitForHydration(page, timeout) {
   try {
@@ -116,11 +114,51 @@ async function testAstroComponents(page, options) {
 }
 
 async function checkAccessibility(url, options = {}) {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+  let browser;
+  let page;
   
   try {
-    await page.goto(url);
+    const { default: puppeteer } = await import('puppeteer');
+    const { AxePuppeteer } = await import('@axe-core/puppeteer');
+    
+    // Launch new browser instance
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
+      ],
+      ignoreHTTPSErrors: true,
+      pipe: true // Use pipe instead of WebSocket
+    });
+    
+    // Store the browser endpoint for potential reuse
+    process.env.PUPPETEER_WS_ENDPOINT = browser.wsEndpoint();
+    page = await browser.newPage();
+    
+    // Configure page settings
+    await page.setBypassCSP(true);
+    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultTimeout(30000);
+    
+    // Navigate with retry logic
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await page.goto(url, { 
+          waitUntil: ['networkidle0', 'domcontentloaded'],
+          timeout: 30000
+        });
+        break;
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     let violations = [];
 
     // Detect frameworks in use
@@ -158,8 +196,9 @@ async function checkAccessibility(url, options = {}) {
   } catch (error) {
     console.error('Error during accessibility check:', error);
   } finally {
-    await browser.close();
+    if (page) await page.close();
+    if (browser) await browser.close();
   }
 }
 
-module.exports = { checkAccessibility };
+export { checkAccessibility };
