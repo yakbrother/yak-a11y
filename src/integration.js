@@ -70,13 +70,27 @@ function astroAccessibility(options = {}) {
         console.log('\nRunning accessibility checks on built site...');
         let hasViolations = false;
         try {
-          // Start preview server
-          const previewServer = await import('astro/preview');
-          const server = await previewServer.preview(config);
-          const url = getLocalUrl(config);
+          // Start http-server
+          const { createServer } = await import('http');
+          const { join } = await import('path');
+          const { readFile } = await import('fs/promises');
+
+          const server = createServer(async (req, res) => {
+            try {
+              const filePath = join(config.outDir, req.url === '/' ? 'index.html' : req.url);
+              const content = await readFile(filePath);
+              res.writeHead(200);
+              res.end(content);
+            } catch (err) {
+              res.writeHead(404);
+              res.end();
+            }
+          });
+
+          await new Promise(resolve => server.listen(4321, resolve));
 
           // Run checks
-          await checkAccessibility(url, {
+          await checkAccessibility('http://localhost:4321', {
             verbose: true,
             dynamicTesting: {
               enabled: true,
@@ -92,8 +106,8 @@ function astroAccessibility(options = {}) {
             }
           });
 
-          // Stop preview server
-          await server.stop();
+          // Stop server
+          await new Promise(resolve => server.close(resolve));
 
         } catch (error) {
           console.error('Build-time accessibility check failed:', error);

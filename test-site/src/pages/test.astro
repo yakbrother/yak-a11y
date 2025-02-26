@@ -9,9 +9,11 @@ import TestCase from '../components/TestCase.jsx';
     <title>Accessibility Test Page</title>
   </head>
   <body>
-    <!-- Container without proper landmarks -->
-    <div class="container">
-      <TestCase client:load />
-    </div>
+    <main>
+      <h1>Accessibility Test Page</h1>
+      <div class="container">
+        <TestCase client:load />
+      </div>
+    </main>
   </body>
 </html>

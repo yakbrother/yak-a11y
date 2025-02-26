@@ -155,7 +155,14 @@ async function generateReport(results, options = {}) {
         chalk.white('Resources')
       ],
       colWidths: [30, 85],
-      wordWrap: true
+      wordWrap: true,
+      wrapOnWordBoundary: true,
+      style: {
+        head: [],
+        border: [],
+        'padding-left': 1,
+        'padding-right': 1
+      }
     });
 
     violations.forEach(violation => {
@@ -166,7 +173,7 @@ async function generateReport(results, options = {}) {
       ].join('\n');
 
       docsTable.push([
-        truncate(violation.help, 28),
+        violation.help,
         docs
       ]);
     });
