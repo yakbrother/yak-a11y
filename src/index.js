@@ -158,6 +158,20 @@ async function checkAccessibility(url, options = {}) {
   let page;
   
   try {
+    // Validate URL before proceeding
+    try {
+      new URL(url);
+    } catch (urlError) {
+      throw new Error(`Invalid URL provided: "${url}"
+
+To fix this:
+1. Make sure your URL starts with http:// or https://
+2. Check for any typos in the URL
+3. If testing locally, use http://localhost:port
+4. For file URLs, use http-server or a local development server
+`);
+    }
+
     const { default: puppeteer } = await import('puppeteer');
     const { AxePuppeteer } = await import('@axe-core/puppeteer');
     
@@ -175,10 +189,26 @@ async function checkAccessibility(url, options = {}) {
     await page.setDefaultTimeout(30000);
     
     // Navigate to URL
-    await page.goto(url, { 
-      waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 30000
-    });
+    try {
+      await page.goto(url, { 
+        waitUntil: ['networkidle0', 'domcontentloaded'],
+        timeout: 30000
+      });
+    } catch (navigationError) {
+      throw new Error(`Failed to access URL "${url}"
+
+To fix this:
+1. Check if the server is running
+2. Verify the URL is accessible in your browser
+3. For localhost URLs:
+   - Ensure your development server is running
+   - Check the port number is correct
+4. For remote URLs:
+   - Check your internet connection
+   - Verify the website is not down
+5. If using authentication, make sure you're logged in
+`);
+    };
 
     // Run accessibility tests
     const results = await new AxePuppeteer(page).analyze();
@@ -186,7 +216,13 @@ async function checkAccessibility(url, options = {}) {
     return results;
 
   } catch (error) {
-    console.error('Error during accessibility check:', error);
+    // Log the error with a helpful header
+    console.error('⚠️  Accessibility Check Error ⚠️\n');
+    console.error(error.message);
+    
+    if (!error.message.includes('To fix this:')) {
+      console.error('\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n');
+    }
     throw error;
   } finally {
     if (page) await page.close();

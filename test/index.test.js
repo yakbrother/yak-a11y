@@ -135,10 +135,10 @@ describe('checkStaticHTML', () => {
 
     it('should handle invalid URLs', async () => {
       const invalidUrl = 'not-a-url';
-      mockPage.goto.mockRejectedValueOnce(new Error('Invalid URL'));
       
-      await expect(checkAccessibility(invalidUrl)).rejects.toThrow();
-      expect(mockBrowser.close).toHaveBeenCalled();
+      await expect(checkAccessibility(invalidUrl)).rejects.toThrow(
+        'Invalid URL provided: "not-a-url"'
+      );
     });
   });
 });
