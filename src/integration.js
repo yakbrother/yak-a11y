@@ -1,29 +1,59 @@
 import { checkAccessibility } from './index.js';
+import chalk from 'chalk';
 
-function getLocalUrl(config) {
-  const host = config.server?.host ?? 'localhost';
-  const port = config.server?.port ?? 4321;
+function getLocalUrl(config = {}) {
+  const host = config?.server?.host ?? 'localhost';
+  const port = config?.server?.port ?? 4321;
   return `http://${host}:${port}`;
 }
 
 async function runAccessibilityCheck(config, logging = true) {
   const url = getLocalUrl(config);
   try {
-    await checkAccessibility(url, {
-      verbose: true,
-      dynamicTesting: {
-        enabled: true,
-        waitForHydration: true,
-        routeChanges: false, // Disable route changes during dev to avoid conflicts
-        ajaxTimeout: 3000
-      },
-      astroTesting: {
-        enabled: true,
-        testIslands: true,
-        frameworks: ['react', 'vue', 'svelte'],
-        autoDetect: true
-      }
-    });
+    // First try static HTML check
+    const response = await fetch(url);
+    const html = await response.text();
+    const { JSDOM } = await import('jsdom');
+    const dom = new JSDOM(html);
+    const window = dom.window;
+    const document = window.document;
+
+    // Configure axe with JSDOM globals
+    global.window = window;
+    global.document = document;
+
+    const axe = (await import('axe-core')).default;
+    const results = await axe.run(document);
+
+    if (logging) {
+      const { generateReport } = await import('./utils/reporter.js');
+      console.log(generateReport(results, {
+        verbose: true,
+        includeHtml: true,
+        includePassing: false
+      }));
+    }
+
+    // Try dynamic check if available
+    try {
+      await checkAccessibility(url, {
+        verbose: true,
+        dynamicTesting: {
+          enabled: true,
+          waitForHydration: true,
+          routeChanges: false,
+          ajaxTimeout: 3000
+        },
+        astroTesting: {
+          enabled: true,
+          testIslands: true,
+          frameworks: ['react', 'vue', 'svelte'],
+          autoDetect: true
+        }
+      });
+    } catch (dynamicError) {
+      console.log('Dynamic testing failed:', dynamicError.message);
+    }
   } catch (error) {
     if (logging) {
       console.error('Accessibility check failed:', error);
@@ -70,70 +100,27 @@ function astroAccessibility(options = {}) {
         console.log('\nRunning accessibility checks on built site...');
         let hasViolations = false;
         try {
-          // Start static server using sirv
-          const { default: sirv } = await import('sirv');
-          const { createServer } = await import('http');
+          const { checkStaticHTML } = await import('./index.js');
+          const { join } = await import('path');
           
-          const PORT = 5555; // Use a different port to avoid conflicts
-          const serve = sirv('dist', {
-            single: true,
-            dev: true,
-            onNoMatch: (req, res) => {
-              console.warn(`404: ${req.url}`);
-              res.statusCode = 404;
-              res.end('Not found');
-            }
-          });
-          
-          const server = createServer((req, res) => {
-            try {
-              serve(req, res);
-            } catch (err) {
-              console.error('Server error:', err);
-              res.statusCode = 500;
-              res.end('Internal server error');
-            }
-          });
-
-          server.on('error', (err) => {
-            console.error('Server error:', err);
-          });
-
-          await new Promise((resolve, reject) => {
-            server.listen(PORT, (err) => {
-              if (err) {
-                console.error('Failed to start server:', err);
-                reject(err);
-                return;
+          // Check each built page
+          for (const page of pages) {
+            const filePath = join('dist', page.pathname === '' ? 'index.html' : page.pathname + '/index.html');
+            console.log(`\nChecking ${page.pathname || 'index.html'}...`);
+            
+            const violations = await checkStaticHTML(filePath, {
+              verbose: true,
+              astroTesting: {
+                enabled: true,
+                frameworks: ['react', 'vue', 'svelte'],
+                autoDetect: true
               }
-              console.log(`Static server running on port ${PORT}`);
-              resolve();
             });
-          });
-
-          // Run checks
-          // Wait for hydration
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          await checkAccessibility('http://localhost:5555', {
-            verbose: true,
-            dynamicTesting: {
-              enabled: true,
-              waitForHydration: true,
-              routeChanges: true,
-              ajaxTimeout: 10000,
-              hydrationTimeout: 10000
-            },
-            astroTesting: {
-              enabled: true,
-              testIslands: true,
-              frameworks: ['react', 'vue', 'svelte'],
-              autoDetect: true
+            
+            if (violations.length > 0) {
+              hasViolations = true;
             }
-          });
-
-          // Stop server
-          await new Promise(resolve => server.close(resolve));
+          }
 
         } catch (error) {
           console.error('Build-time accessibility check failed:', error);

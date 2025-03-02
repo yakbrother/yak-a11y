@@ -94,11 +94,12 @@ async function generateReport(results, options = {}) {
   // Summary Table
   const summaryTable = new Table({
     head: [
-      chalk.white('Impact'),
+      chalk.white('Severity'),
+      chalk.white('Description'),
       chalk.white('Type'),
       chalk.white('Count')
     ],
-    colWidths: [15, 40, 10]
+    colWidths: [30, 40, 30, 10]
   });
 
   const impactCounts = violations.reduce((acc, v) => {
