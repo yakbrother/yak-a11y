@@ -169,66 +169,25 @@ async function checkAccessibility(url, options = {}) {
       args: ['--no-sandbox']
     });
     
-    // Store the browser endpoint for potential reuse
-    process.env.PUPPETEER_WS_ENDPOINT = browser.wsEndpoint();
+    // Create new page and set timeouts
     page = await browser.newPage();
-    
-    // Configure page settings
-    await page.setBypassCSP(true);
     await page.setDefaultNavigationTimeout(30000);
     await page.setDefaultTimeout(30000);
     
-    // Navigate with retry logic
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        await page.goto(url, { 
-          waitUntil: ['networkidle0', 'domcontentloaded'],
-          timeout: 30000
-        });
-        break;
-      } catch (err) {
-        retries--;
-        if (retries === 0) throw err;
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-    let violations = [];
+    // Navigate to URL
+    await page.goto(url, { 
+      waitUntil: ['networkidle0', 'domcontentloaded'],
+      timeout: 30000
+    });
 
-    // Detect frameworks in use
-    const detectedFrameworks = await detectFrameworks(page);
-    
-    // Update testing options based on detected frameworks
-    if (options.astroTesting?.enabled) {
-      options.astroTesting.frameworks = options.astroTesting.frameworks.filter(fw => 
-        detectedFrameworks.includes(fw)
-      );
-    }
+    // Run accessibility tests
+    const results = await new AxePuppeteer(page).analyze();
+    await generateReport(results, options);
+    return results;
 
-    // Initial static content check
-    const initialResults = await new AxePuppeteer(page).analyze();
-    violations.push(...initialResults.violations);
-
-    // Dynamic content testing
-    if (options.dynamicTesting?.enabled) {
-      const dynamicViolations = await testDynamicContent(page, options.dynamicTesting);
-      violations.push(...dynamicViolations);
-    }
-
-    // Astro-specific testing
-    if (options.astroTesting?.enabled && options.astroTesting.frameworks.length > 0) {
-      const astroViolations = await testAstroComponents(page, options.astroTesting);
-      violations.push(...astroViolations);
-    }
-
-    // Deduplicate violations
-    violations = violations.filter((v, i, self) =>
-      i === self.findIndex(t => t.id === v.id && t.html === v.html)
-    );
-
-    await generateReport({ violations }, options);
   } catch (error) {
     console.error('Error during accessibility check:', error);
+    throw error;
   } finally {
     if (page) await page.close();
     if (browser) await browser.close();

@@ -4,10 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    threads: true,
-    maxThreads: 4,
-    minThreads: 1,
-    isolate: true,
+    threads: false, // Disable threading to avoid Puppeteer issues
+    isolate: false, // Disable isolation to prevent mock issues
     coverage: {
       provider: 'v8',
       reporter: ['text'],
@@ -20,11 +18,10 @@ export default defineConfig({
         'vitest.config.js'
       ]
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
-    pool: 'threads',
+    testTimeout: 35000, // Increase timeout to match our navigation timeouts
+    hookTimeout: 35000,
     sequence: {
-      shuffle: true
+      shuffle: false // Disable shuffling for predictable test order
     }
   }
 });

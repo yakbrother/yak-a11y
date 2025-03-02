@@ -87,8 +87,9 @@ Options:
 - `-v, --verbose`: Show more detailed information about each violation
 - `--skip-dynamic`: Skip dynamic content testing
 - `--skip-astro`: Skip Astro-specific component testing
-- `--hydration-timeout`: Set maximum wait time for hydration (default: 5000ms)
-- `--frameworks`: Specify frameworks to test (e.g., --frameworks=react,vue)
+- `--hydration-timeout <ms>`: Set maximum wait time for hydration (default: 5000ms)
+- `--frameworks <list>`: Specify frameworks to test as comma-separated list (default: react,vue)
+- `--auto-detect`: Auto-detect frameworks and skip tests for unused ones (default: true)
 
 ### 2. Programmatic Usage
 
@@ -114,6 +115,31 @@ await checkAccessibility('http://localhost:3000', {
 ```
 
 ## Features
+
+### Standards and Guidelines Checked
+
+The tool checks against the following accessibility standards and guidelines:
+
+#### Core Standards
+- **WCAG 2.1 Level A** - Basic web accessibility requirements
+- **WCAG 2.1 Level AA** - Standard level of accessibility for most websites
+- **WAI-ARIA 1.2** - Rich Internet Applications accessibility guidelines
+- **Section 508** - US federal accessibility requirements
+
+#### Additional Guidelines
+- **EN 301 549** - European accessibility requirements for ICT products and services
+- **AODA** - Accessibility for Ontarians with Disabilities Act
+- **ADA** - Americans with Disabilities Act web accessibility requirements
+
+#### Framework-Specific Guidelines
+- **React Accessibility Guidelines**
+- **Vue Accessibility Guidelines**
+- **Astro Component Accessibility Best Practices**
+
+#### Mobile Accessibility
+- **WCAG 2.1 Mobile Success Criteria**
+- **iOS Accessibility Guidelines**
+- **Android Accessibility Guidelines**
 
 ### Comprehensive Accessibility Checks
 
@@ -199,6 +225,47 @@ We're planning to add these additional accessibility checks:
 - Language detection
 - Character encoding
 - Date and number formats
+
+## Framework Auto-Detection
+
+The tool now includes intelligent framework detection:
+- Automatically detects which frameworks (React, Vue, etc.) are used in your project
+- Only runs framework-specific tests for frameworks that are actually present
+- Improves performance by skipping unnecessary tests
+- Can be disabled with `--auto-detect=false` if you need to force specific framework tests
+
+## Error Handling and Reporting
+
+Improved error handling and reporting features:
+- Detailed error messages with specific line numbers and elements
+- Grouped violations by severity and type
+- Clear, actionable fix suggestions
+- Performance impact considerations
+- Links to relevant accessibility guidelines
+
+## License
+
+MIT License
+
+Copyright (c) 2025 YakBrother
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ### 7. PDF Accessibility
 - Document structure

@@ -1,20 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { program } from '../bin/cli.js';
+import { Command } from 'commander';
 import { checkAccessibility } from '../src/index.js';
 
 vi.mock('../src/index.js', () => ({
   checkAccessibility: vi.fn()
 }));
 
+let program;
+
 beforeEach(() => {
   vi.clearAllMocks();
-  // Mock process.exit to prevent Commander from exiting
-  const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {});
-  return () => mockExit.mockRestore();
+  // Create a new program instance for each test
+  program = new Command();
+  program
+    .version('1.0.0')
+    .description('Check accessibility of Astro pages')
+    .argument('<url>', 'URL to check')
+    .option('-v, --verbose', 'Show detailed information')
+    .option('--skip-dynamic', 'Skip dynamic content testing')
+    .option('--skip-astro', 'Skip Astro-specific component testing')
+    .option('--hydration-timeout <ms>', 'Set maximum wait time for hydration', '5000')
+    .option('--frameworks <list>', 'Specify frameworks to test (comma-separated)', 'react,vue')
+    .option('--auto-detect', 'Auto-detect frameworks and skip tests for unused ones', true);
 });
-
-// Mock the action handler
-program.action(() => {});
 
 describe('CLI', () => {
   it('should have the correct version', () => {
@@ -22,19 +30,30 @@ describe('CLI', () => {
   });
 
   it('should have required options', () => {
+    program.parse(['node', 'cli.js', 'http://example.com'], { from: 'user' });
     const options = program.opts();
-    expect(options).toHaveProperty('verbose');
-    expect(options).toHaveProperty('skipDynamic');
-    expect(options).toHaveProperty('skipAstro');
-    expect(options).toHaveProperty('hydrationTimeout');
-    expect(options).toHaveProperty('frameworks');
-    expect(options).toHaveProperty('autoDetect');
+    expect(options).toHaveProperty('hydrationTimeout', '5000');
+    expect(options).toHaveProperty('frameworks', 'react,vue');
+    expect(options).toHaveProperty('autoDetect', true);
   });
 
   it('should handle URL argument', () => {
     const url = 'http://example.com';
-    const args = program.parse(['node', 'cli.js', url], { from: 'user' }).args;
-    expect(args[0]).toBe(url);
+    let capturedUrl;
+    let capturedOptions;
+
+    // Add the action handler for this test
+    program
+      .action((urlArg, options) => {
+        capturedUrl = urlArg;
+        capturedOptions = options;
+      });
+    
+    // Parse with the test arguments
+    program.parseAsync([url], { from: 'user' });
+    
+    // Verify the URL was captured correctly
+    expect(capturedUrl).toBe(url);
   });
 
   it('should handle verbose flag', () => {

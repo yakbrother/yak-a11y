@@ -1,7 +1,11 @@
 #!/usr/bin/env node
+// @ts-check
+// @type {module}
 
-const { program } = require('commander');
-const { checkAccessibility } = require('../src/index');
+import { Command } from 'commander';
+import { checkAccessibility } from '../src/index.js';
+
+const program = new Command();
 
 program
   .version('1.0.0')

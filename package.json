@@ -1,6 +1,6 @@
 {
   "name": "astro-accessibility",
-  "version": "1.0.0",
+  "version": "0.8.1",
   "type": "module",
   "description": "Accessibility checker for Astro projects with detailed explanations and documentation links",
   "main": "src/index.js",
