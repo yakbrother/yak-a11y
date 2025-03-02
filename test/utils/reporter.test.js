@@ -3,18 +3,21 @@ import { generateReport } from '../../src/utils/reporter.js';
 import chalk from 'chalk';
 
 describe('reporter', () => {
-  // Mock console.log to capture output
   let consoleOutput = [];
-  const mockLog = vi.fn((...args) => {
-    const output = args.join(' ').replace(/\u001b\[.*?m/g, ''); // Remove ANSI color codes
-    consoleOutput.push(output);
+  const mockLog = vi.fn((...args) => consoleOutput.push(args.join(' ')));
+  
+  beforeAll(() => {
+    console.log = mockLog;
+    chalk.level = 0; // Disable colors for testing
   });
-  console.log = mockLog;
 
   beforeEach(() => {
     consoleOutput = [];
     mockLog.mockClear();
-    chalk.level = 0; // Disable colors for testing
+  });
+
+  afterAll(() => {
+    console.log = console.log; // Restore original console.log
   });
 
   it('should report no violations correctly', async () => {
@@ -23,19 +26,21 @@ describe('reporter', () => {
     expect(consoleOutput[0]).toContain('No accessibility violations found');
   });
 
+  const mockViolation = {
+    id: 'image-alt',
+    impact: 'critical',
+    help: 'Images must have alternate text',
+    nodes: [{
+      html: '<img src="test.jpg">',
+      failureSummary: 'Fix any of the following: Element does not have an alt attribute'
+    }],
+    tags: ['wcag2a'],
+    helpUrl: 'https://dequeuniversity.com/rules/axe/4.6/image-alt'
+  };
+
   it('should format violations with correct colors', async () => {
     const results = {
-      violations: [{
-        id: 'image-alt',
-        impact: 'critical',
-        help: 'Images must have alternate text',
-        nodes: [{
-          html: '<img src="test.jpg">',
-          failureSummary: 'Fix any of the following: Element does not have an alt attribute'
-        }],
-        tags: ['wcag2a'],
-        helpUrl: 'https://dequeuniversity.com/rules/axe/4.6/image-alt'
-      }]
+      violations: [mockViolation]
     };
 
     await generateReport(results);
@@ -51,17 +56,7 @@ describe('reporter', () => {
 
   it('should include documentation links in verbose mode', async () => {
     const results = {
-      violations: [{
-        id: 'image-alt',
-        impact: 'critical',
-        help: 'Images must have alternate text',
-        nodes: [{
-          html: '<img src="test.jpg">',
-          failureSummary: 'Fix any of the following: Element does not have an alt attribute'
-        }],
-        tags: ['wcag2a'],
-        helpUrl: 'https://dequeuniversity.com/rules/axe/4.6/image-alt'
-      }]
+      violations: [mockViolation]
     };
 
     await generateReport(results, { verbose: true });

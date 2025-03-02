@@ -1,5 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { program } from '../bin/cli.js';
+import { checkAccessibility } from '../src/index.js';
+
+vi.mock('../src/index.js', () => ({
+  checkAccessibility: vi.fn()
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Mock process.exit to prevent Commander from exiting
+  const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {});
+  return () => mockExit.mockRestore();
+});
+
+// Mock the action handler
+program.action(() => {});
 
 describe('CLI', () => {
   it('should have the correct version', () => {
@@ -18,24 +33,24 @@ describe('CLI', () => {
 
   it('should handle URL argument', () => {
     const url = 'http://example.com';
-    program.parse(['node', 'cli.js', url]);
-    expect(program.args[0]).toBe(url);
+    const args = program.parse(['node', 'cli.js', url], { from: 'user' }).args;
+    expect(args[0]).toBe(url);
   });
 
   it('should handle verbose flag', () => {
-    program.parse(['node', 'cli.js', 'http://example.com', '--verbose']);
+    program.parse(['node', 'cli.js', 'http://example.com', '--verbose'], { from: 'user' });
     const options = program.opts();
     expect(options.verbose).toBe(true);
   });
 
   it('should handle framework options', () => {
-    program.parse(['node', 'cli.js', 'http://example.com', '--frameworks', 'react,vue']);
+    program.parse(['node', 'cli.js', 'http://example.com', '--frameworks', 'react,vue'], { from: 'user' });
     const options = program.opts();
     expect(options.frameworks).toBe('react,vue');
   });
 
   it('should handle hydration timeout', () => {
-    program.parse(['node', 'cli.js', 'http://example.com', '--hydration-timeout', '10000']);
+    program.parse(['node', 'cli.js', 'http://example.com', '--hydration-timeout', '10000'], { from: 'user' });
     const options = program.opts();
     expect(options.hydrationTimeout).toBe('10000');
   });

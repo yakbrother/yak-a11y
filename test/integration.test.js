@@ -1,8 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock the integration module
 vi.mock('../src/integration.js', () => ({
-  astroAccessibility: vi.fn((options = {}) => ({
+  astroAccessibility: vi.fn().mockImplementation((options = {}) => ({
     name: 'astro-accessibility',
     hooks: {
       'astro:config:setup': vi.fn(),
@@ -11,9 +10,19 @@ vi.mock('../src/integration.js', () => ({
     options
   }))
 }));
-
-// Import after mocking
 import { astroAccessibility } from '../src/integration.js';
+
+const mockIntegration = {
+  name: 'astro-accessibility',
+  hooks: {
+    'astro:config:setup': vi.fn(),
+    'astro:build:done': vi.fn()
+  }
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('integration', () => {
   describe('astroAccessibility', () => {

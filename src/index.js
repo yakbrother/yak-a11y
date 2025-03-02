@@ -33,33 +33,10 @@ async function checkStaticHTML(filePath, options = {}) {
     // Clean up
     window.close();
 
-    return results.violations;
+    return { violations: results.violations };
   } catch (error) {
     console.error('Error during static HTML analysis:', error);
-    if (error.message.includes('Required "window" or "document" globals')) {
-      console.log('Attempting alternative analysis method...');
-      try {
-        const { default: puppeteer } = await import('puppeteer');
-        const { AxePuppeteer } = await import('@axe-core/puppeteer');
-        
-        const browser = await puppeteer.launch({ headless: 'new' });
-        const page = await browser.newPage();
-        
-        try {
-          const html = await readFile(filePath, 'utf-8');
-          await page.setContent(html);
-          const results = await new AxePuppeteer(page).analyze();
-          await generateReport(results, options);
-          return results.violations;
-        } finally {
-          await page.close();
-          await browser.close();
-        }
-      } catch (puppeteerError) {
-        console.error('Alternative analysis also failed:', puppeteerError);
-      }
-    }
-    return [];
+    throw error; // Propagate the error instead of catching it
   }
 }
 
@@ -189,15 +166,7 @@ async function checkAccessibility(url, options = {}) {
     // Launch new browser instance
     browser = await puppeteer.launch({
       headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process'
-      ],
-      ignoreHTTPSErrors: true,
-      pipe: true // Use pipe instead of WebSocket
+      args: ['--no-sandbox']
     });
     
     // Store the browser endpoint for potential reuse

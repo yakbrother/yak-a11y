@@ -4,9 +4,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    threads: true,
+    maxThreads: 4,
+    minThreads: 1,
+    isolate: true,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text'],
       exclude: [
         'coverage/**',
         'dist/**',
@@ -15,6 +19,12 @@ export default defineConfig({
         'test/**',
         'vitest.config.js'
       ]
+    },
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    pool: 'threads',
+    sequence: {
+      shuffle: true
     }
   }
 });

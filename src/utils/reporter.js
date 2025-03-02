@@ -137,6 +137,7 @@ async function generateReport(results, options = {}) {
   violations.forEach(violation => {
     violation.nodes.forEach(node => {
       const { impact, help, element, fixes } = formatViolation(violation, node);
+      console.log(help); // Log help text directly
       detailsTable.push([
         getImpactColor(impact)(getUserFriendlyImpact(impact)),
         truncate(help, 28),
