@@ -1,5 +1,5 @@
 {
-  "name": "astro-accessibility",
+  "name": "@yakbrother/astro-accessibility",
   "version": "0.8.1",
   "type": "module",
   "description": "Accessibility checker for Astro projects with detailed explanations and documentation links",
@@ -12,9 +12,9 @@
     "./integration": "./src/integration.js"
   },
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage"
+    "test": "FORCE_COLOR=1 vitest run",
+    "test:watch": "FORCE_COLOR=1 vitest watch",
+    "test:coverage": "FORCE_COLOR=1 vitest run --coverage"
   },
   "keywords": [
     "astro",
@@ -25,6 +25,13 @@
   ],
   "author": "yakbrother",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yakbrother/astro-accessibilty.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.0.7",
     "vitest": "^3.0.7",

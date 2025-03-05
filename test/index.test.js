@@ -134,11 +134,31 @@ describe('checkStaticHTML', () => {
     });
 
     it('should handle invalid URLs', async () => {
-      const invalidUrl = 'not-a-url';
+      const invalidUrls = [
+        'not-a-url',
+        'ftp://invalid-protocol.com',
+        'localhost:3000',
+        '/relative/path'
+      ];
       
-      await expect(checkAccessibility(invalidUrl)).rejects.toThrow(
-        'Invalid URL provided: "not-a-url"'
-      );
+      for (const invalidUrl of invalidUrls) {
+        await expect(checkAccessibility(invalidUrl)).rejects.toThrow(
+          `Invalid URL provided: "${invalidUrl}"`
+        );
+      }
+    });
+
+    it('should accept valid URLs', async () => {
+      const validUrls = [
+        'http://example.com',
+        'https://test.com',
+        'http://localhost:3000'
+      ];
+
+      for (const validUrl of validUrls) {
+        const result = await checkAccessibility(validUrl);
+        expect(result).toBeDefined();
+      }
     });
   });
 });

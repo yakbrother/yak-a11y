@@ -160,7 +160,10 @@ async function checkAccessibility(url, options = {}) {
   try {
     // Validate URL before proceeding
     try {
-      new URL(url);
+      const parsedUrl = new URL(url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error('Invalid protocol');
+      }
     } catch (urlError) {
       throw new Error(`Invalid URL provided: "${url}"
 
