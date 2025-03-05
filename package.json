@@ -20,10 +20,6 @@
   "license": "MIT",
   "author": "yakbrother",
   "type": "module",
-  "exports": {
-    ".": "./src/index.js",
-    "./integration": "./src/integration.js"
-  },
   "main": "src/index.js",
   "bin": {
     "astro-a11y": "bin/cli.js"
@@ -56,6 +52,6 @@
     "astro": "^4.0.0 || ^5.0.0"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://npm.pkg.github.com/"
   }
 }
