@@ -228,6 +228,11 @@ The tool checks against the following accessibility standards and guidelines:
 
 See [ROADMAP.md](ROADMAP.md) for upcoming features and planned improvements.
 
+## Requirements
+
+- Node.js 14 or higher
+- Astro 3.0 or higher
+
 ## Framework Auto-Detection
 
 The tool now includes intelligent framework detection:
@@ -251,7 +256,7 @@ Improved error handling and reporting features:
 
 MIT License
 
-Copyright (c) 2025 YakBrother
+Copyright (c) 2025 Tim Eaton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -272,8 +277,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 We welcome contributions! If you'd like to help implement any of these features, please check our contributing guidelines.
-
-## Requirements
-
-- Node.js 14 or higher
-- Astro 3.0 or higher
