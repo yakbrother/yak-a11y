@@ -9,13 +9,13 @@
     "wcag",
     "axe-core"
   ],
-  "homepage": "https://github.com/yakbrother/astro-accessibilty#readme",
+  "homepage": "https://github.com/yakbrother/astro-accessibility#readme",
   "bugs": {
-    "url": "https://github.com/yakbrother/astro-accessibilty/issues"
+    "url": "https://github.com/yakbrother/astro-accessibility/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yakbrother/astro-accessibilty.git"
+    "url": "git+https://github.com/yakbrother/astro-accessibility.git"
   },
   "license": "MIT",
   "author": "yakbrother",
@@ -51,7 +51,5 @@
   "peerDependencies": {
     "astro": "^4.0.0 || ^5.0.0"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  }
+
 }

@@ -1,0 +1,9 @@
+.DS_Store
+.git
+.github
+coverage
+test
+vitest.config.js
+ROADMAP.md
+.gitignore
+.npmrc
