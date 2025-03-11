@@ -49,5 +49,13 @@
     "@vitest/coverage-v8": "^3.0.7",
     "happy-dom": "^15.10.2",
     "vitest": "^3.0.7"
+  },
+  "peerDependencies": {
+    "astro": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": true
+    }
   }
 }
