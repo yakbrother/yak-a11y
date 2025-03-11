@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image and Form Issues Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        button {
+            background: blue;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Our Products</h1>
+    
+    <!-- Missing alt text -->
+    <img src="product1.jpg" width="300" height="200">
+    
+    <!-- Decorative image should have empty alt -->
+    <img src="decorative-line.png" alt="A decorative horizontal line" width="800" height="20">
+    
+    <!-- Generic alt text -->
+    <img src="chart.png" alt="image" width="400" height="300">
+
+    <h2>Contact Sales</h2>
+    <!-- Form with various accessibility issues -->
+    <form action="/submit" method="post">
+        <!-- Input without label -->
+        <div class="form-group">
+            <input type="text" name="fullname" placeholder="Enter your name">
+        </div>
+        
+        <!-- Label without for attribute -->
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" name="email">
+        </div>
+        
+        <!-- Required field without indication -->
+        <div class="form-group">
+            <label for="phone">Phone:</label>
+            <input type="tel" id="phone" name="phone" required>
+        </div>
+        
+        <!-- Select without label -->
+        <div class="form-group">
+            <select name="product">
+                <option value="">Choose a product</option>
+                <option value="1">Product 1</option>
+                <option value="2">Product 2</option>
+            </select>
+        </div>
+
+        <!-- Generic button text -->
+        <button>Submit</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Contrast and ARIA Issues Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f0f0f0;
+        }
+        /* Poor color contrast */
+        .alert {
+            color: #999;
+            background: #eee;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .info {
+            color: #77b;
+            background: #fff;
+            padding: 1rem;
+        }
+        .tab {
+            color: #888;
+            background: #ddd;
+            padding: 0.5rem 1rem;
+            border: none;
+            cursor: pointer;
+        }
+        .tab[aria-selected="true"] {
+            color: #666;
+            background: #fff;
+        }
+        .accordion-button {
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            background: #e0e0e0;
+            border: none;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #888">Welcome to Our Site</h1>
+
+    <!-- Missing required ARIA attributes -->
+    <div role="tablist">
+        <button class="tab" role="tab">Tab 1</button>
+        <button class="tab" role="tab" aria-selected="true">Tab 2</button>
+        <button class="tab" role="tab">Tab 3</button>
+    </div>
+
+    <!-- Missing required ARIA attributes -->
+    <div role="tabpanel">
+        <p class="info">This is the tab content.</p>
+    </div>
+
+    <!-- Incorrect ARIA usage -->
+    <div role="button">
+        <p>This is not a real button</p>
+    </div>
+
+    <!-- Alert without proper live region -->
+    <div class="alert" role="alert">
+        <p>This is an important message!</p>
+    </div>
+
+    <!-- Accordion with missing ARIA -->
+    <div class="accordion">
+        <button class="accordion-button">
+            Section 1
+        </button>
+        <div>
+            <p>Content for section 1</p>
+        </div>
+        
+        <button class="accordion-button">
+            Section 2
+        </button>
+        <div>
+            <p>Content for section 2</p>
+        </div>
+    </div>
+
+    <!-- Form with poor contrast -->
+    <form>
+        <p style="color: #999">All fields are required</p>
+        <div>
+            <label style="color: #888" for="name">Name:</label>
+            <input type="text" id="name">
+        </div>
+        <div>
+            <label style="color: #888" for="email">Email:</label>
+            <input type="email" id="email">
+        </div>
+        <button style="color: #777; background: #ddd">Submit</button>
+    </form>
+
+    <!-- Interactive elements without keyboard support -->
+    <div onclick="toggleMenu()" style="color: #888; cursor: pointer">
+        Click to toggle menu
+    </div>
+    <div id="menu" hidden>
+        <p style="color: #999">Menu content</p>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.hidden = !menu.hidden;
+        }
+    </script>
+</body>
+</html>

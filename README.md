@@ -1,6 +1,6 @@
-# Astro Accessibility Checker
+# Yak A11y
 
-A comprehensive accessibility checker for Astro projects that provides detailed explanations and documentation links for any accessibility issues found.
+A comprehensive accessibility checker that provides detailed explanations and documentation links for any accessibility issues found. Get actionable feedback to improve your website's accessibility.
 
 ## Installation
 
@@ -8,58 +8,41 @@ You can install this package using your preferred package manager:
 
 ```bash
 # Using npm
-npm install astro-accessibility
+npm install yak-a11y
 
 # Using pnpm
-pnpm add astro-accessibility
+pnpm add yak-a11y
 
 # Using yarn
-yarn add astro-accessibility
+yarn add yak-a11y
 ```
 
-## Local Usage with Astro
+## Getting Started
 
-### 1. Add to Your Astro Config
+### 1. Try the Example Pages
 
-The recommended way to use this package is by adding it to your `astro.config.mjs`:
+After installation, run the example server to test different accessibility scenarios:
 
-```javascript
-import { defineConfig } from 'astro/config';
-import accessibility from 'astro-accessibility/integration';
-
-export default defineConfig({
-  integrations: [
-    accessibility({
-      // Options (all optional)
-      enableDevChecks: true,     // Run checks during development
-      enableBuildChecks: true,   // Run checks during build
-      failOnErrors: true,        // Fail build if issues are found
-      checkInterval: 5000,       // Check interval during development (ms)
-    }),
-  ],
-});
-```
-
-### 2. Add NPM Script (Optional)
-
-Add a script to your `package.json` to run accessibility checks on demand:
-
-```json
-{
-  "scripts": {
-    "a11y": "astro-accessibility",
-    "a11y:check": "astro-accessibility http://localhost:4321"
-  }
-}
-```
-
-Now you can run checks using:
 ```bash
-# Check the current development server
-npm run a11y:check
+node examples/server.js
+```
 
-# Check a specific URL with verbose output
-npm run a11y:check -- https://your-site.com --verbose
+This will start a server with example pages:
+- `perfect.html` - A fully accessible page
+- `image-form-issues.html` - Common image and form problems
+- `navigation-issues.html` - Navigation and landmark issues
+- `contrast-aria-issues.html` - Color contrast and ARIA problems
+
+### 2. Run Accessibility Checks
+
+Run the accessibility checker using:
+
+```bash
+# Basic check
+yak-a11y http://localhost:3000/perfect.html
+
+# Check with detailed output
+yak-a11y http://localhost:3000/image-form-issues.html --verbose
 ```
 
 ## Usage
@@ -197,7 +180,6 @@ For detailed guidelines and best practices, see [DOCS.md](DOCS.md).
 ## Requirements
 
 - Node.js 14 or higher
-- Astro 3.0 or higher
 
 ## Troubleshooting
 

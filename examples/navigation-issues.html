@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation and Landmark Issues Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .menu {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            gap: 1rem;
+        }
+        .content {
+            margin: 2rem 0;
+        }
+        .sidebar {
+            padding: 1rem;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- No header landmark -->
+    <div>
+        <!-- Navigation not marked as nav -->
+        <ul class="menu">
+            <li><a href="#" onclick="navigate('home')">Home</a></li>
+            <li><a href="#" onclick="navigate('products')">Products</a></li>
+            <li><a href="#" onclick="navigate('about')">About</a></li>
+            <li><a href="#" onclick="navigate('contact')">Contact</a></li>
+        </ul>
+    </div>
+
+    <!-- Content not wrapped in main landmark -->
+    <div class="content">
+        <!-- Incorrect heading hierarchy -->
+        <h3>Welcome to Our Website</h3>
+        
+        <h1>Latest Products</h1>
+        <p>Check out our newest offerings.</p>
+
+        <h4>Featured Item</h4>
+        <p>This is our best-selling product.</p>
+    </div>
+
+    <!-- Complementary content not marked as aside -->
+    <div class="sidebar">
+        <h2>Quick Links</h2>
+        <!-- Links that don't describe their purpose -->
+        <p><a href="/specials">Click here</a></p>
+        <p><a href="/deals">Read more</a></p>
+        <p><a href="/offers">More info</a></p>
+    </div>
+
+    <!-- No footer landmark -->
+    <div>
+        <p>&copy; 2025 Example Company</p>
+    </div>
+
+    <script>
+        function navigate(page) {
+            // Navigation without proper announcement
+            window.location.hash = page;
+        }
+    </script>
+</body>
+</html>
