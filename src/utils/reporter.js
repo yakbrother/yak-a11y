@@ -1,18 +1,67 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
-function truncate(str, length) {
-  if (!str) return '';
-  str = str.replace(/\n/g, ' ').trim();
-  return str.length > length ? str.substring(0, length - 3) + '...' : str;
+function wrapText(text, width) {
+  if (!text) {
+    return [''];
+  }
+  
+  // First, split by newlines to preserve intentional line breaks
+  return text.split('\n').flatMap(paragraph => {
+    const words = paragraph.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      // If the word itself is longer than the width, split it
+      if (word.length > width) {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = '';
+        }
+        for (let i = 0; i < word.length; i += width) {
+          lines.push(word.slice(i, i + width));
+        }
+        continue;
+      }
+
+      // Check if adding this word would exceed the width
+      const withWord = currentLine ? currentLine + ' ' + word : word;
+      if (withWord.length <= width) {
+        currentLine = withWord;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  });
+}
+
+function isDarkTheme() {
+  // Most terminals set this env var for dark mode
+  if (process.env.COLORFGBG) {
+    const [fg, bg] = process.env.COLORFGBG.split(';');
+    return parseInt(bg) < parseInt(fg);
+  }
+  // Fallback to checking if common dark mode env vars are set
+  return process.env.TERM_PROGRAM_VERSION >= '400' || 
+         process.env.COLORTERM === 'truecolor' || 
+         process.env.FORCE_COLOR === '3';
 }
 
 function getImpactColor(impact) {
+  const isDark = isDarkTheme();
   const colors = {
-    critical: chalk.red,
-    serious: chalk.yellow,
-    moderate: chalk.blue,
-    minor: chalk.green
+    critical: chalk.hex('#ff4444'),  // Bright red for both themes
+    serious: isDark ? chalk.hex('#ffd700') : chalk.hex('#b58900'),  // Gold/Yellow
+    moderate: isDark ? chalk.hex('#00ffff') : chalk.hex('#0087bd'),  // Cyan/Blue
+    minor: isDark ? chalk.hex('#98fb98') : chalk.hex('#2aa198')   // Light green/Teal
   };
   return colors[impact] || chalk.white;
 }
@@ -62,26 +111,38 @@ function enhanceFailureSummary(summary, violation) {
   return summary;
 }
 
+function cleanHtmlString(html) {
+  return html
+    .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+    .replace(/\s*([<>])\s*/g, '$1')  // Remove spaces around < and >
+    .replace(/\s+\/>/g, '/>')  // Clean up self-closing tags
+    .trim();
+}
+
 function formatViolation(violation, node) {
   let summary = node.failureSummary || '';
   summary = enhanceFailureSummary(summary, violation);
   summary = summary
-    .replace('Fix any of the following:', chalk.cyan('Try these fixes:'))
-    .replace('Fix all of the following:', chalk.cyan('Required fixes:'))
+    .replace(/^Fix (any|all) of the following:\s*/m, '')
     .split('\n')
     .filter(line => line.trim())
-    .map(line => '  ' + line.trim())
+    .map(line => line.trim())
     .join('\n');
 
   return {
     impact: violation.impact,
     help: violation.help,
-    element: node.html,
+    element: cleanHtmlString(node.html),
     fixes: summary || getUserFriendlyDescription(violation)
   };
 }
 
 async function generateReport(results, options = {}) {
+  if (!results) {
+    console.log(chalk.red('\n❌ No results to report - the page could not be analyzed\n'));
+    return;
+  }
+
   const { violations } = results;
   
   if (violations.length === 0) {
@@ -89,74 +150,97 @@ async function generateReport(results, options = {}) {
     return;
   }
 
-  console.log(chalk.red(`\n${violations.length} accessibility violations found:`));
+  const violationWord = violations.length === 1 ? 'violation' : 'violations';
+  console.log(chalk.bold(`\n${violations.length} accessibility ${violationWord} found:`));
 
-  // Summary Table
-  const summaryTable = new Table({
-    head: [
-      chalk.white('Severity'),
-      chalk.white('Description'),
-      chalk.white('Type'),
-      chalk.white('Count')
-    ],
-    colWidths: [30, 40, 30, 10]
-  });
-
+  // Summary Section
   const impactCounts = violations.reduce((acc, v) => {
     acc[v.impact] = (acc[v.impact] || 0) + v.nodes.length;
     return acc;
   }, {});
 
+  console.log('\nSummary');
+  console.log('━'.repeat(40));
+  
   Object.entries(impactCounts)
     .sort((a, b) => {
       const priority = { critical: 4, serious: 3, moderate: 2, minor: 1 };
       return priority[b[0]] - priority[a[0]];
     })
     .forEach(([impact, count]) => {
-      summaryTable.push([
-        getImpactColor(impact)(getUserFriendlyImpact(impact)),
-        chalk.white(impact.charAt(0).toUpperCase() + impact.slice(1) + ' Issues'),
-        chalk.white(count.toString())
-      ]);
+      console.log(
+        `${getImpactColor(impact)('■')} ${getUserFriendlyImpact(impact)}: ${count} ${count === 1 ? 'issue' : 'issues'}`
+      );
     });
 
-  console.log(summaryTable.toString() + '\n');
+  // Detailed Violations
+  console.log('\nDetailed Issues');
+  console.log('━'.repeat(40));
 
-  // Detailed Violations Table
-  const detailsTable = new Table({
-    head: [
-      chalk.white('Priority'),
-      chalk.white('Issue'),
-      chalk.white('Element'),
-      chalk.white('How to Fix')
-    ],
-    colWidths: [15, 30, 30, 40],
-    wordWrap: true
-  });
-
-  violations.forEach(violation => {
-    violation.nodes.forEach(node => {
+  violations.forEach((violation, index) => {
+    violation.nodes.forEach((node, nodeIndex) => {
       const { impact, help, element, fixes } = formatViolation(violation, node);
-      console.log(help); // Log help text directly
-      detailsTable.push([
-        getImpactColor(impact)(getUserFriendlyImpact(impact)),
-        truncate(help, 28),
-        truncate(element, 28),
-        truncate(fixes, 38)
-      ]);
+      
+      const boxWidth = 76;
+      
+      console.log(`\n${chalk.bold(`Issue ${index + 1}${nodeIndex > 0 ? `.${nodeIndex + 1}` : ''}`)}`);
+      console.log('─'.repeat(boxWidth));
+      
+      // Helper function to print a line with proper padding
+      const printLine = (content, indent = 0) => {
+        const lines = wrapText(content, boxWidth - indent);
+        lines.forEach(line => {
+          console.log(`${' '.repeat(indent)}${line}`);
+        });
+      };
+
+      // Print each section
+      printLine(`${chalk.bold('Priority:')} ${getImpactColor(impact)(getUserFriendlyImpact(impact))}`, 1);
+      console.log();
+      
+      printLine(`${chalk.bold('Issue:')} ${help}`, 1);
+      console.log();
+      
+      printLine(`${chalk.bold('Element:')} ${element}`, 1);
+      console.log();
+      
+      printLine(chalk.cyan('Try these fixes:'), 1);
+      fixes.split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^(Try these fixes:|Required fixes:)\s*/, '').trim())
+        .forEach(fix => printLine(fix, 3));
+      
+      console.log('─'.repeat(boxWidth));
     });
   });
 
-  console.log(detailsTable.toString() + '\n');
+  console.log();
 
   if (options.verbose) {
+    // Group violations by type and count occurrences
+    const issueGroups = violations.reduce((acc, violation) => {
+      if (!acc[violation.help]) {
+        acc[violation.help] = {
+          count: 0,
+          elements: 0,
+          tags: new Set(),
+          helpUrl: violation.helpUrl,
+          docs: getRelevantDocs(violation)
+        };
+      }
+      acc[violation.help].count++;
+      acc[violation.help].elements += violation.nodes.length;
+      violation.tags.forEach(tag => acc[violation.help].tags.add(tag));
+      return acc;
+    }, {});
+
     // Documentation Table
     const docsTable = new Table({
       head: [
-        chalk.white('Issue'),
+        chalk.white('Issue Type'),
         chalk.white('Resources')
       ],
-      colWidths: [30, 85],
+      colWidths: [30, 90],
       wordWrap: true,
       wrapOnWordBoundary: true,
       style: {
@@ -167,17 +251,18 @@ async function generateReport(results, options = {}) {
       }
     });
 
-    violations.forEach(violation => {
+    Object.entries(issueGroups).forEach(([issue, data]) => {
+      const instanceText = data.count === 1 ? 'instance' : 'instances';
+      const elementText = data.elements === 1 ? 'element' : 'elements';
+      const issueWithCount = `${chalk.bold(issue)}\n\n${chalk.cyan('→')} ${chalk.cyan(`${data.count} ${instanceText}`)}\n${chalk.cyan('→')} ${chalk.cyan(`${data.elements} affected ${elementText}`)}`;
+      
       const docs = [
-        `WCAG: ${violation.tags.filter(tag => tag.startsWith('wcag')).join(', ')}`,
-        `Docs: ${violation.helpUrl}`,
-        ...getRelevantDocs(violation).map(doc => `${doc.description}: ${DOCS_URLS[doc.key]}`)
+        `WCAG: ${Array.from(data.tags).filter(tag => tag.startsWith('wcag')).join(', ')}`,
+        `Docs: ${data.helpUrl}`,
+        ...data.docs.map(doc => `${doc.description}: ${DOCS_URLS[doc.key]}`)
       ].join('\n');
 
-      docsTable.push([
-        violation.help,
-        docs
-      ]);
+      docsTable.push([issueWithCount, docs]);
     });
 
     console.log(chalk.cyan('\nDetailed Documentation:'));
@@ -330,10 +415,10 @@ function getUserFriendlyDescription(violation) {
 
 function getUserFriendlyImpact(impact) {
   const impacts = {
-    'critical': 'High Priority - Must Fix',
-    'serious': 'Important - Should Fix',
-    'moderate': 'Medium Priority',
-    'minor': 'Low Priority'
+    'critical': 'Critical - Must Fix',
+    'serious': 'High Priority - Should Fix',
+    'moderate': 'Medium Priority - Consider',
+    'minor': 'Low Priority - Optional'
   };
   return impacts[impact] || impact;
 }

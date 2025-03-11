@@ -8,8 +8,8 @@ async function checkStaticHTML(filePath, options = {}) {
   try {
     const html = await readFile(filePath, 'utf-8');
     const dom = new JSDOM(html);
-    const window = dom.window;
-    const document = window.document;
+    const { window } = dom;
+    const { document } = window;
 
     // Configure axe
     axe.configure({
@@ -198,19 +198,30 @@ To fix this:
         timeout: 30000
       });
     } catch (navigationError) {
-      throw new Error(`Failed to access URL "${url}"
-
-To fix this:
-1. Check if the server is running
-2. Verify the URL is accessible in your browser
-3. For localhost URLs:
-   - Ensure your development server is running
-   - Check the port number is correct
-4. For remote URLs:
-   - Check your internet connection
-   - Verify the website is not down
-5. If using authentication, make sure you're logged in
-`);
+      let errorMessage = `\n⚠️  Accessibility Check Error ⚠️\n\nCould not access "${url}"\n`;
+      
+      if (url.startsWith('http://localhost')) {
+        errorMessage += '\nPossible reasons:\n';
+        errorMessage += '1. The development server is not running\n';
+        errorMessage += '2. The port number is incorrect\n';
+        errorMessage += '3. The server is running but not responding\n\n';
+        errorMessage += 'To fix this:\n';
+        errorMessage += '1. Start your development server (e.g., npm run dev)\n';
+        errorMessage += '2. Ensure the port matches your server configuration\n';
+        errorMessage += '3. Wait a few seconds for the server to be ready\n';
+      } else {
+        errorMessage += '\nPossible reasons:\n';
+        errorMessage += '1. The website is offline or unreachable\n';
+        errorMessage += '2. The URL is incorrect\n';
+        errorMessage += '3. Your internet connection is not working\n';
+        errorMessage += '4. The site is blocking automated access\n\n';
+        errorMessage += 'To fix this:\n';
+        errorMessage += '1. Check if you can access the site in your browser\n';
+        errorMessage += '2. Verify the URL is correct\n';
+        errorMessage += '3. Check your internet connection\n';
+      }
+      
+      throw new Error(errorMessage);
     };
 
     // Run accessibility tests
@@ -219,17 +230,23 @@ To fix this:
     return results;
 
   } catch (error) {
-    // Log the error with a helpful header
-    console.error('⚠️  Accessibility Check Error ⚠️\n');
+    // Only show the error message once
+    if (!error.message.includes('⚠️  Accessibility Check Error ⚠️')) {
+      console.error('⚠️  Accessibility Check Error ⚠️\n');
+    }
     console.error(error.message);
     
     if (!error.message.includes('To fix this:')) {
       console.error('\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n');
     }
-    throw error;
+    process.exit(1);
   } finally {
-    if (page) await page.close();
-    if (browser) await browser.close();
+    if (page) {
+      await page.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
