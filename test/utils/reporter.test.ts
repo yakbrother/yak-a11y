@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { generateReport } from '../../src/utils/reporter.js';
 import chalk from 'chalk';
+import type { Result } from 'axe-core';
 
 describe('reporter', () => {
-  let consoleOutput = [];
-  const mockLog = vi.fn((...args) => consoleOutput.push(args.join(' ')));
+  let consoleOutput: string[] = [];
+  const mockLog = vi.fn((...args: any[]) => consoleOutput.push(args.join(' ')));
   
   beforeAll(() => {
     console.log = mockLog;
@@ -26,7 +27,7 @@ describe('reporter', () => {
     expect(consoleOutput[0]).toContain('No accessibility violations found');
   });
 
-  const mockViolation = {
+  const mockViolation: Result = {
     id: 'image-alt',
     impact: 'critical',
     help: 'Images must have alternate text',
@@ -45,13 +46,12 @@ describe('reporter', () => {
 
     await generateReport(results);
     
-    expect(consoleOutput.some(output => 
-      output.includes('1 accessibility violations found')
-    )).toBe(true);
-    
-    expect(consoleOutput.some(output => 
-      output.includes('Images must have alternate text')
-    )).toBe(true);
+    // Check for the presence of key content without relying on colors
+    const outputString = consoleOutput.join('\n');
+    expect(outputString).toContain('1 accessibility violation found');
+    expect(outputString).toContain('Images must have alternate text');
+    expect(outputString).toContain('Priority:');
+    expect(outputString).toContain('Critical - Must Fix');
   });
 
   it('should include documentation links in verbose mode', async () => {

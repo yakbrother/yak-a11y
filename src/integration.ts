@@ -1,13 +1,65 @@
-import { checkAccessibility } from './index.js';
+import { checkAccessibility, checkStaticHTML } from './index';
+import type { AxeResults } from 'axe-core';
+// Import Server type from http instead of vite to avoid type conflicts
+import type { Server as HttpServer } from 'node:http';
 import chalk from 'chalk';
 
-function getLocalUrl(config = {}) {
+interface AstroConfig {
+  server?: {
+    host?: string;
+    port?: number;
+  };
+}
+
+interface DynamicTestingOptions {
+  enabled: boolean;
+  waitForHydration: boolean;
+  routeChanges: boolean;
+  ajaxTimeout: number;
+}
+
+interface AstroTestingOptions {
+  enabled: boolean;
+  testIslands: boolean;
+  frameworks: string[];
+  autoDetect: boolean;
+}
+
+interface AccessibilityOptions {
+  verbose?: boolean;
+  dynamicTesting?: DynamicTestingOptions;
+  astroTesting?: AstroTestingOptions;
+}
+
+interface AstroAccessibilityOptions {
+  enableDevChecks?: boolean;
+  enableBuildChecks?: boolean;
+  failOnErrors?: boolean;
+  forceBuild?: boolean;
+  checkInterval?: number;
+}
+
+interface AstroBuildPage {
+  pathname: string;
+}
+
+interface AstroBuildDoneEvent {
+  config: AstroConfig;
+  pages: AstroBuildPage[];
+}
+
+interface AstroServerSetupEvent {
+  server: any; // Using any for server to avoid type conflicts
+  config: AstroConfig;
+}
+
+function getLocalUrl(config: AstroConfig = {}): string {
   const host = config?.server?.host ?? 'localhost';
   const port = config?.server?.port ?? 4321;
   return `http://${host}:${port}`;
 }
 
-async function runAccessibilityCheck(config, logging = true) {
+async function runAccessibilityCheck(config: AstroConfig, logging = true): Promise<void> {
   const url = getLocalUrl(config);
   try {
     // First try static HTML check
@@ -15,53 +67,49 @@ async function runAccessibilityCheck(config, logging = true) {
     const html = await response.text();
     const { JSDOM } = await import('jsdom');
     const dom = new JSDOM(html);
-    const window = dom.window;
-    const document = window.document;
+    // Destructure window and document properties
+    const { window } = dom;
+    const { document } = window;
 
     // Configure axe with JSDOM globals
-    global.window = window;
-    global.document = document;
+    (global as any).window = window;
+    (global as any).document = document;
 
     const axe = (await import('axe-core')).default;
     const results = await axe.run(document);
 
     if (logging) {
-      const { generateReport } = await import('./utils/reporter.js');
-      console.log(generateReport(results, {
-        verbose: true,
-        includeHtml: true,
-        includePassing: false
-      }));
+      const { generateReport } = await import('./utils/reporter');
+      await generateReport(results, {
+        verbose: true
+        // Removed unsupported options
+      });
     }
 
     // Try dynamic check if available
     try {
       await checkAccessibility(url, {
         verbose: true,
-        dynamicTesting: {
-          enabled: true,
-          waitForHydration: true,
-          routeChanges: false,
-          ajaxTimeout: 3000
-        },
-        astroTesting: {
-          enabled: true,
-          testIslands: true,
-          frameworks: ['react', 'vue', 'svelte'],
-          autoDetect: true
-        }
+        // Convert to compatible options format
+        waitForHydration: true,
+        routeChanges: false,
+        ajaxTimeout: 3000,
+        testIslands: true,
+        frameworks: ['react', 'vue', 'svelte']
       });
     } catch (dynamicError) {
-      console.log('Dynamic testing failed:', dynamicError.message);
+      if (dynamicError instanceof Error) {
+        console.log('Dynamic testing failed:', dynamicError.message);
+      }
     }
   } catch (error) {
     if (logging) {
-      console.error('Accessibility check failed:', error);
+      console.error('Accessibility check failed:', error instanceof Error ? error.message : String(error));
     }
   }
 }
 
-function astroAccessibility(options = {}) {
+function astroAccessibility(options: AstroAccessibilityOptions = {}) {
   const defaultOptions = {
     enableDevChecks: true,     // Run during development
     enableBuildChecks: true,   // Run during build
@@ -71,13 +119,15 @@ function astroAccessibility(options = {}) {
   };
 
   const finalOptions = { ...defaultOptions, ...options };
-  let checkTimeout;
+  let checkTimeout: NodeJS.Timeout | undefined;
 
   return {
     name: 'astro-accessibility',
     hooks: {
-      'astro:server:setup': async ({ server, config }) => {
-        if (!finalOptions.enableDevChecks) return;
+      'astro:server:setup': async ({ server, config }: AstroServerSetupEvent) => {
+        if (!finalOptions.enableDevChecks) {
+          return;
+        }
 
         // Initial check when server starts
         await runAccessibilityCheck(config);
@@ -85,7 +135,9 @@ function astroAccessibility(options = {}) {
         // Set up periodic checks during development
         server.watcher.on('change', async () => {
           // Clear existing timeout to avoid multiple simultaneous checks
-          if (checkTimeout) clearTimeout(checkTimeout);
+          if (checkTimeout) {
+            clearTimeout(checkTimeout);
+          }
           
           // Set new timeout for the check
           checkTimeout = setTimeout(async () => {
@@ -94,13 +146,14 @@ function astroAccessibility(options = {}) {
         });
       },
 
-      'astro:build:done': async ({ config, pages }) => {
-        if (!finalOptions.enableBuildChecks) return;
+      'astro:build:done': async ({ config, pages }: AstroBuildDoneEvent) => {
+        if (!finalOptions.enableBuildChecks) {
+          return;
+        }
 
         console.log('\nRunning accessibility checks on built site...');
         let hasViolations = false;
         try {
-          const { checkStaticHTML } = await import('./index.js');
           const { join } = await import('path');
           
           // Check each built page
@@ -109,21 +162,17 @@ function astroAccessibility(options = {}) {
             console.log(`\nChecking ${page.pathname || 'index.html'}...`);
             
             const violations = await checkStaticHTML(filePath, {
-              verbose: true,
-              astroTesting: {
-                enabled: true,
-                frameworks: ['react', 'vue', 'svelte'],
-                autoDetect: true
-              }
+              verbose: true
+              // Removed unsupported options
             });
             
-            if (violations.length > 0) {
+            if (violations.violations && violations.violations.length > 0) {
               hasViolations = true;
             }
           }
 
         } catch (error) {
-          console.error('Build-time accessibility check failed:', error);
+          console.error('Build-time accessibility check failed:', error instanceof Error ? error.message : String(error));
           hasViolations = true;
           if (finalOptions.failOnErrors && !finalOptions.forceBuild) {
             throw new Error('Accessibility checks failed. Use forceBuild: true to bypass (NOT RECOMMENDED)');
