@@ -12,7 +12,7 @@
   "homepage": "https://www.npmjs.com/package/yak-a11y",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yakbrother/yak-a11y.git"
+    "url": "git+https://github.com/yakbrother/yak-a11y.git"
   },
   "license": "MIT",
   "author": "yakbrother",
@@ -23,6 +23,7 @@
     "yak-a11y": "dist/cli.js"
   },
   "directories": {
+    "example": "examples",
     "test": "test"
   },
   "scripts": {
@@ -65,5 +66,8 @@
     "astro": {
       "optional": true
     }
+  },
+  "bugs": {
+    "url": "https://github.com/yakbrother/yak-a11y/issues"
   }
 }
