@@ -17,11 +17,11 @@ A fast, comprehensive accessibility checker that provides detailed explanations 
 # Install globally
 npm install -g yak-a11y
 
-# Check a live site
+# Check your live website
 yak-a11y --url http://localhost:3000
 
-# Check static HTML files
-yak-a11y --file index.html about.html
+# Check your built files
+yak-a11y --file dist/*.html
 
 # Get detailed output
 yak-a11y --url http://localhost:3000 --verbose
@@ -45,20 +45,20 @@ yarn global add yak-a11y
 ### Command Line Interface
 
 ```bash
-# Basic usage
-yak-a11y --url <url>              # Check a live website
-yak-a11y --file <files...>        # Check static HTML files
+# Check your live development server
+yak-a11y --url http://localhost:3000
+
+# Check your built files before deployment
+yak-a11y --file dist/*.html
+
+# Get detailed violation information
+yak-a11y --url http://localhost:3000 --verbose
 
 # Options
 --url <url>                       # URL to check
 --file <file1> <file2>...         # HTML files to check
 --verbose                         # Show detailed violation info
 --help, -h                        # Show help message
-
-# Examples
-yak-a11y --url http://localhost:3000/page.html
-yak-a11y --file dist/index.html dist/about.html --verbose
-yak-a11y --url https://example.com --verbose
 ```
 
 ### Development Workflow Integration
@@ -121,9 +121,9 @@ jobs:
       - run: sleep 3 && npx yak-a11y --url http://localhost:4173 --verbose
 ```
 
-### Try the Examples
+### Test the Tool (Optional)
 
-Test with the included example pages:
+If you want to see how it works, try the included example pages:
 
 ```bash
 # Start example server
@@ -152,22 +152,9 @@ const fileResults = await checkStaticHTML("./dist/index.html", {
 console.log(`Found ${results.violations.length} issues`);
 ```
 
-### Real-World Examples
+### Real-World Usage
 
-#### Live Site Testing
-
-```bash
-# Test any live website
-yak-a11y --url https://example.com --verbose
-
-# Test your production site
-yak-a11y --url https://mywebsite.com --verbose
-
-# Test staging environment
-yak-a11y --url https://staging.mywebsite.com --verbose
-```
-
-#### Development Workflow
+#### During Development
 
 ```bash
 # 1. Start your development server
@@ -180,7 +167,7 @@ yak-a11y --url http://localhost:3000 --verbose
 yak-a11y --url http://localhost:3000 --verbose
 ```
 
-#### Build Pipeline Integration
+#### Before Deployment
 
 ```bash
 # Check built files before deployment
@@ -191,6 +178,16 @@ yak-a11y --file dist/*.html --verbose
 npm run preview &
 sleep 3
 yak-a11y --url http://localhost:4173 --verbose
+```
+
+#### Production Sites
+
+```bash
+# Test your production site
+yak-a11y --url https://mywebsite.com --verbose
+
+# Test staging environment
+yak-a11y --url https://staging.mywebsite.com --verbose
 ```
 
 #### Framework-Specific Examples
@@ -255,7 +252,7 @@ Issue 1
 ────────────────────────────────────────
  Priority: Critical - Must Fix
  Issue: Images must have alternative text
- Element: <img src="product.jpg" width="300">
+ Element: <img src="hero.jpg" width="300">
 
  Try these fixes:
    Add an alt attribute describing the image content
@@ -302,7 +299,7 @@ npm run build
 # Test
 npm test
 
-# Run examples
+# Test with examples (optional)
 npm run examples
 ```
 
