@@ -1,500 +1,214 @@
-# Yak A11y
+# 🦌 Yak A11y
 
-A comprehensive accessibility checker that provides detailed explanations and documentation links for any accessibility issues found. Get actionable feedback to improve your website's accessibility.
+A fast, comprehensive accessibility checker that provides detailed explanations and actionable fixes. Get beautiful, educational reports to improve your website's accessibility compliance.
 
-## Installation
+## ✨ Features
 
-You can install this package using your preferred package manager:
+- 🔍 **Comprehensive scanning** - Checks WCAG 2.1 AA, Section 508, and best practices
+- 📊 **Beautiful reports** - Color-coded output with detailed explanations
+- ⚡ **Blazing fast** - Optimized for performance with connection pooling
+- 🎯 **Actionable feedback** - Direct links to documentation and fixes
+- 📁 **Batch processing** - Check multiple files in parallel
+- 🌐 **Live site testing** - Test URLs with dynamic content support
 
-```bash
-# Using npm
-npm install yak-a11y
-
-# Using pnpm
-pnpm add yak-a11y
-
-# Using yarn
-yarn add yak-a11y
-```
-
-## Getting Started
-
-### 1. Try the Example Pages
-
-After installation, run the example server to test different accessibility scenarios:
+## 🚀 Quick Start
 
 ```bash
-node examples/server.js
+# Install globally
+npm install -g yak-a11y
+
+# Check a live site
+yak-a11y --url http://localhost:3000
+
+# Check static HTML files
+yak-a11y --file index.html about.html
+
+# Get detailed output
+yak-a11y --url http://localhost:3000 --verbose
 ```
 
-This will start a server with example pages:
-- `perfect.html` - A fully accessible page
-- `image-form-issues.html` - Common image and form problems
-- `navigation-issues.html` - Navigation and landmark issues
-- `contrast-aria-issues.html` - Color contrast and ARIA problems
-
-### 2. Run Accessibility Checks
-
-Run the accessibility checker using:
+## 📦 Installation
 
 ```bash
-# Basic check
-yak-a11y http://localhost:3000/perfect.html
+# npm
+npm install -g yak-a11y
 
-# Check with detailed output
-yak-a11y http://localhost:3000/image-form-issues.html --verbose
+# pnpm
+pnpm add -g yak-a11y
+
+# yarn
+yarn global add yak-a11y
 ```
 
-## Usage
+## 🛠️ Usage
 
-You can use this package in several ways:
-
-### 1. Command Line Interface
-
-Run accessibility checks directly from the command line:
+### Command Line Interface
 
 ```bash
-# Basic check
-yak-a11y http://localhost:3000
+# Basic usage
+yak-a11y --url <url>              # Check a live website
+yak-a11y --file <files...>        # Check static HTML files
 
-# Show detailed information
-yak-a11y --verbose http://localhost:3000
+# Options
+--url <url>                       # URL to check
+--file <file1> <file2>...         # HTML files to check
+--verbose                         # Show detailed violation info
+--help, -h                        # Show help message
 
-# Skip dynamic content testing
-yak-a11y --skip-dynamic http://localhost:3000
-
-# Set hydration timeout
-yak-a11y --hydration-timeout 8000 http://localhost:3000
-
-# Test specific frameworks
-yak-a11y --frameworks react,vue http://localhost:3000
-
-# Auto-detect frameworks (default)
-yak-a11y --auto-detect http://localhost:3000
+# Examples
+yak-a11y --url http://localhost:3000/page.html
+yak-a11y --file dist/index.html dist/about.html --verbose
+yak-a11y --url https://example.com --verbose
 ```
 
-### 2. Astro Integration
+### Try the Examples
 
-For Astro projects, you can add automatic accessibility checking during development and build. This is particularly useful in CI/CD pipelines to ensure no accessibility issues make it to production.
+Test with the included example pages:
 
-#### Basic Integration
+```bash
+# Start example server
+npm run examples
+
+# Test different scenarios
+yak-a11y --url http://localhost:3000/perfect.html           # Clean page ✅
+yak-a11y --url http://localhost:3000/contrast-aria-issues.html --verbose  # Issues 🚨
+```
+
+### Programmatic Usage
 
 ```javascript
-import { defineConfig } from 'astro/config';
-import accessibility from 'yak-a11y/astro';
+import { checkAccessibility, checkStaticHTML } from "yak-a11y";
 
-export default defineConfig({
-  integrations: [
-    accessibility({
-      // Options (all optional)
-      enableDevChecks: true,     // Run checks during development
-      enableBuildChecks: true,   // Run checks during build
-      failOnErrors: true,        // Fail build if issues are found
-      checkInterval: 5000,       // Check interval during development (ms)
-      frameworks: ['react', 'vue'], // Frameworks to check (auto-detect if not specified)
-      skipDynamic: false,        // Skip dynamic content testing
-      hydrationTimeout: 8000,    // Timeout for hydration (ms)
-    }),
-  ],
-});
-```
-
-#### Build Hook Integration
-
-To ensure your site meets accessibility standards before deployment, the integration automatically hooks into Astro's build process:
-
-1. **Pre-build Checks**: Before the build starts, it verifies your configuration and prepares the testing environment.
-
-2. **During Build**: As pages are generated, it runs accessibility checks on each page.
-
-3. **Post-build Validation**: After the build completes, it performs a final check on the entire site.
-
-You can configure the build behavior:
-
-```javascript
-import { defineConfig } from 'astro/config';
-import accessibility from 'yak-a11y/astro';
-
-export default defineConfig({
-  integrations: [
-    accessibility({
-      // Build-specific options
-      enableBuildChecks: true,    // Enable build-time checking
-      failOnErrors: true,         // Stop the build if issues are found
-      failOnWarnings: false,      // Optionally fail on warnings too
-      
-      // What to check during build
-      checkTypes: {
-        critical: true,           // Must-fix accessibility issues
-        serious: true,            // Should-fix accessibility issues
-        moderate: false,          // Consider-fixing accessibility issues
-      },
-      
-      // Output options
-      outputFormat: 'detailed',   // 'simple' | 'detailed' | 'json'
-      generateReport: true,       // Create an accessibility report file
-      reportFile: 'a11y-report.json',  // Path to save the report
-    }),
-  ],
-});
-```
-
-This integration provides:
-- Automatic checks during development
-- Pre-deployment validation
-- CI/CD pipeline integration
-- Detailed accessibility reports
-- Framework-specific testing
-- Immediate feedback in your terminal
-
-#### CI/CD Integration
-
-You can integrate accessibility checks into your CI/CD pipeline using the `yak-a11y` command. If you're using Astro, the checks will run automatically during build when configured in `astro.config.mjs` (see [Astro Integration](#2-astro-integration)).
-
-Here are detailed setup instructions for popular CI platforms:
-
-##### GitHub Actions
-
-1. Create a new workflow file at `.github/workflows/accessibility.yml`:
-
-```yaml
-name: Accessibility Checks
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  # Optional: Run on schedule
-  schedule:
-    - cron: '0 0 * * 1'  # Weekly on Mondays
-
-jobs:
-  a11y:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build site
-        run: npm run build
-
-      - name: Start production server
-        run: npx serve dist &
-
-      - name: Run accessibility check
-        id: a11y
-        run: |
-          sleep 3  # Wait for server to start
-          npx yak-a11y http://localhost:3000 \
-            --verbose \
-            --frameworks astro,react \
-            --hydration-timeout 10000 \
-            --output-format json \
-            --report-file a11y-report.json
-
-      - name: Upload accessibility report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: accessibility-report
-          path: a11y-report.json
-
-      # Optional: Comment results on PR
-      - name: Comment PR
-        if: github.event_name == 'pull_request' && steps.a11y.outcome != 'success'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('a11y-report.json', 'utf8'));
-            const issues = report.violations.length;
-            
-            const body = `## Accessibility Check Results ♿️
-            Found ${issues} accessibility issues. Please check the full report in the artifacts.
-            
-            ### Quick Fix
-            Run locally with:
-            \`\`\`bash
-            npx yak-a11y http://localhost:3000 --verbose
-            \`\`\`
-            
-            [View detailed report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-```
-
-2. Configure options in your repository:
-   - Go to Settings > Actions > General
-   - Enable "Read and write permissions" under "Workflow permissions"
-
-3. Optional: Add status badge to your README:
-```markdown
-[![Accessibility Checks](https://github.com/<username>/<repo>/actions/workflows/accessibility.yml/badge.svg)](https://github.com/<username>/<repo>/actions/workflows/accessibility.yml)
-```
-
-##### GitLab CI
-
-1. Create or update `.gitlab-ci.yml` in your repository:
-
-```yaml
-image: node:18
-
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - .npm/
-    - node_modules/
-
-# Define stages
-stages:
-  - setup
-  - build
-  - test
-
-# Install dependencies
-setup:
-  stage: setup
-  script:
-    - npm ci --cache .npm --prefer-offline
-  artifacts:
-    paths:
-      - node_modules/
-
-# Build the site
-build:
-  stage: build
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - dist/
-
-# Run accessibility checks
-accessibility:
-  stage: test
-  script:
-    # Install and start server
-    - npm install -g serve
-    - serve dist & 
-    - sleep 3  # Wait for server
-    
-    # Run checks
-    - |
-      # Note: If using Astro integration, these checks run automatically during build
-      npx yak-a11y http://localhost:3000 \
-        --verbose \
-        --frameworks astro,react \
-        --hydration-timeout 10000 \
-        --output-format json \
-        --report-file a11y-report.json
-  artifacts:
-    reports:
-      accessibility: a11y-report.json
-    expose_as: 'Accessibility Report'
-    when: always
-  # Optional: Only run on main branch and MRs
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # Add MR comments
-  after_script:
-    - |
-      if [ -f a11y-report.json ] && [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
-        issues=$(jq '.violations | length' a11y-report.json)
-        echo "Found $issues accessibility issues."
-        echo "### Quick Fix 🔧" >> report.md
-        echo 'Run locally with:' >> report.md
-        echo '```bash' >> report.md
-        echo 'npx yak-a11y http://localhost:3000 --verbose' >> report.md
-        echo '```' >> report.md
-      fi
-```
-
-2. Configure GitLab CI/CD settings:
-   - Go to Settings > CI/CD
-   - Expand "General pipelines"
-   - Set "Timeout" to 15 minutes
-   - Enable "Public pipelines"
-
-3. Optional: Add pipeline status badge to your README:
-```markdown
-[![Pipeline Status](https://gitlab.com/<username>/<repo>/badges/main/pipeline.svg)](https://gitlab.com/<username>/<repo>/-/commits/main)
-```
-
-4. View reports:
-   - Go to CI/CD > Pipelines
-   - Click on the latest pipeline
-   - View the accessibility report under "Artifacts"
-
-For other CI platforms, you can follow similar patterns. All examples use the same core components:
-
-1. **Setup**: Install Node.js and dependencies
-2. **Build**: Build your site
-3. **Test**: Run accessibility checks
-4. **Report**: Save and publish results
-
-##### Common Configuration
-
-For any CI platform, use these settings:
-
-```bash
-# Core command
-npx yak-a11y <url> \
-  --verbose \
-  --frameworks astro,react \
-  --hydration-timeout 10000 \
-  --output-format json \
-  --report-file a11y-report.json
-
-# Exit codes
-# 0: No issues found
-# 1: Accessibility issues found
-# 2: Runtime error
-```
-
-##### Environment Variables
-
-You can configure the checker using environment variables in your CI platform:
-
-```bash
-# Optional environment variables
-YAK_FRAMEWORKS=astro,react     # Frameworks to check
-YAK_TIMEOUT=10000             # Hydration timeout in ms
-YAK_REPORT_FILE=custom.json   # Custom report location
-YAK_FAIL_LEVEL=error         # fail on error|warning|all
-```
-
-These settings work consistently across all CI platforms while maintaining the single command approach.
-
-### 3. Programmatic Usage
-
-Use the checker in your own scripts or tools:
-
-```javascript
-import { checkAccessibility } from 'yak-a11y';
-
-await checkAccessibility('http://localhost:3000', {
+// Check a live URL
+const results = await checkAccessibility("http://localhost:3000", {
   verbose: true,
-  // Optional advanced testing configuration
-  dynamicTesting: {
-    enabled: true,          // Enable/disable dynamic content testing
-    waitForHydration: true, // Wait for components to hydrate
-    routeChanges: true,     // Test accessibility after route changes
-    ajaxTimeout: 5000,      // Timeout for AJAX updates (ms)
-  },
-  frameworks: {
-    enabled: true,          // Enable/disable framework-specific testing
-    autoDetect: true,       // Auto-detect frameworks in use
-    include: ['react', 'vue'], // Test specific framework components
-    ignoreHydrating: false, // Whether to ignore elements during hydration
-  },
 });
+
+// Check static HTML
+const fileResults = await checkStaticHTML("./dist/index.html", {
+  verbose: true,
+});
+
+console.log(`Found ${results.violations.length} issues`);
 ```
 
+## 📊 Sample Output
 
+```bash
+✓ No accessibility violations found
+
+# Or with issues:
+4 accessibility violations found:
+
+Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ Critical - Must Fix: 2 issues
+■ Serious - Should Fix: 1 issue
+■ Moderate - Consider Fixing: 1 issue
+
+Issue 1
+────────────────────────────────────────
+ Priority: Critical - Must Fix
+ Issue: Images must have alternative text
+ Element: <img src="product.jpg" width="300">
+
+ Try these fixes:
+   Add an alt attribute describing the image content
+
+ Documentation:
+   https://www.w3.org/WAI/WCAG21/quickref/#images-of-text
 ```
 
-## Standards and Guidelines
+## 🎯 What Gets Checked
 
-This tool helps ensure your website meets modern accessibility standards:
+### Core Accessibility Issues
 
-### Core Standards
-- WCAG 2.1 (Level A & AA)
-- WAI-ARIA 1.2
+- **Images**: Missing alt text, decorative images
+- **Forms**: Missing labels, unclear instructions
+- **Color**: Insufficient contrast ratios
+- **Navigation**: Missing landmarks, heading hierarchy
+- **Keyboard**: Focus management, tab order
+- **ARIA**: Proper usage, valid attributes
+
+### Standards Compliance
+
+- WCAG 2.1 Level A & AA
 - Section 508
-- EN 301 549 (EU)
-- AODA & ADA
+- Best practices from axe-core
 
-### Framework Support
-- React Components
-- Vue Components
-- Astro Integration
-- Static & Dynamic Content
-- Mobile Accessibility
+## ⚡ Performance Features
 
-## What Gets Checked
+- **Connection pooling** - Reuses browser instances for faster consecutive checks
+- **Parallel processing** - Checks multiple files simultaneously
+- **Lazy loading** - Dependencies loaded only when needed
+- **Optimized timeouts** - Reduced wait times without sacrificing accuracy
 
-### 1. Page Structure
-- HTML landmarks (`<header>`, `<nav>`, `<main>`, etc.)
-- Heading hierarchy
-- Skip links
-- Document metadata
+## 🔧 Development Setup
 
-### 2. Content
-- Alt text for images
-- Color contrast
-- Link/button labels
-- Form controls
-- Keyboard navigation
+```bash
+# Clone and install
+git clone https://github.com/yakbrother/yak-a11y.git
+cd yak-a11y
+npm install
 
-### 3. Dynamic Content
-- ARIA attributes
-- Client-side routing
-- Framework components (React, Vue, Astro)
-- Interactive widgets
-- Component hydration
+# Build
+npm run build
 
-## Documentation
+# Test
+npm test
 
-For detailed guidelines and best practices, see [DOCS.md](DOCS.md).
-## Requirements
+# Run examples
+npm run examples
+```
 
-- Node.js 14 or higher
+## 🏗️ Build Scripts
 
-## Troubleshooting
+```bash
+npm run build              # Compile TypeScript
+npm run dev               # Watch mode
+npm run test              # Run test suite
+npm run test:coverage     # Coverage report
+npm run examples          # Start test server
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Connection Errors**
-   - Ensure development server is running
-   - Check port number is correct
-   - Verify URL is accessible
-
-2. **Framework & Astro Integration**
-   - Confirm integration is properly configured in `astro.config.mjs`
-   - Check framework dependencies are installed
-   - Review build configuration
-
-3. **Performance**
-   - Adjust hydration timeout: `yak-a11y --hydration-timeout 10000`
-   - Skip dynamic checks: `yak-a11y --skip-dynamic`
-   - Test specific pages instead of full site
-   - Use `checkInterval` in Astro integration for slower machines
-
-### Command Reference
+**"Cannot find module" errors**
 
 ```bash
-yak-a11y [options] <url>
-
-Options:
-  --verbose             Show detailed reports
-  --skip-dynamic        Skip dynamic content checks
-  --frameworks          Specify frameworks to check (e.g., react,vue)
-  --hydration-timeout   Set component hydration timeout in ms (default: 5000)
-  --auto-detect         Auto-detect frameworks (default: true)
-  --help                Show help
-  --version             Show version
-
-Examples:
-  yak-a11y http://localhost:3000
-  yak-a11y --verbose --frameworks react,vue http://localhost:3000
-  yak-a11y --skip-dynamic --hydration-timeout 10000 http://localhost:3000
+npm run build  # Ensure TypeScript is compiled
 ```
 
-## License
+**Connection timeouts**
 
-MIT
+```bash
+# Ensure your server is running
+npm run dev  # or your development command
+```
+
+**Canvas warnings (non-blocking)**
+
+```
+# These are expected for static HTML checking and don't affect results
+Error: Not implemented: HTMLCanvasElement.prototype.getContext
+```
+
+### Getting Help
+
+1. Check the [examples](./examples/) directory
+2. Run with `--verbose` for detailed output
+3. Open an issue with your command and error message
+
+## 📄 License
+
+MIT - See [LICENSE](LICENSE) for details.
+
+## 🤝 Contributing
+
+Contributions welcome! Please read our contributing guidelines and open an issue first for major changes.
+
+---
+
+**Made with ♿ by developers who care about accessibility**

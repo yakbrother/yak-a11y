@@ -2,31 +2,95 @@ import { generateReport } from "./utils/reporter.js";
 import { JSDOM } from "jsdom";
 import axe from "axe-core";
 import { readFile } from "fs/promises";
+// Global browser instance for connection pooling
+let globalBrowser = null;
+let browserReuseCount = 0;
+const MAX_BROWSER_REUSE = 10; // Restart browser after 10 uses to prevent memory leaks
 // These will be initialized in an async context
 let puppeteer;
-let AxePuppeteer; // Using any temporarily to resolve type issues
-// Initialize dependencies
+let AxePuppeteer;
+// Cache for compiled axe configuration
+let axeConfigCache = null;
+// Initialize dependencies with caching
 async function initDependencies() {
     if (!puppeteer) {
-        const puppeteerModule = await import("puppeteer");
+        const [puppeteerModule, axePuppeteerModule] = await Promise.all([
+            import("puppeteer"),
+            import("@axe-core/puppeteer"),
+        ]);
         puppeteer = puppeteerModule.default;
-    }
-    if (!AxePuppeteer) {
-        const axePuppeteerModule = await import("@axe-core/puppeteer");
         AxePuppeteer = axePuppeteerModule.AxePuppeteer;
     }
+}
+// Get or create browser instance with connection pooling
+async function getBrowser() {
+    await initDependencies();
+    if (globalBrowser && browserReuseCount < MAX_BROWSER_REUSE) {
+        browserReuseCount++;
+        return globalBrowser;
+    }
+    // Close existing browser if reuse limit reached
+    if (globalBrowser) {
+        await globalBrowser.close().catch(() => { }); // Ignore errors
+    }
+    globalBrowser = await puppeteer.launch({
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage", // Reduces memory usage
+            "--disable-gpu",
+            "--no-first-run",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+        ],
+    });
+    browserReuseCount = 1;
+    return globalBrowser;
+}
+// Cleanup function for browser
+async function cleanupBrowser() {
+    if (globalBrowser) {
+        await globalBrowser.close().catch(() => { });
+        globalBrowser = null;
+        browserReuseCount = 0;
+    }
+}
+// Get cached axe configuration
+function getAxeConfig() {
+    if (!axeConfigCache) {
+        axeConfigCache = {
+            runOnly: {
+                type: "tag",
+                values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"],
+            },
+            reporter: "v2",
+        };
+    }
+    return axeConfigCache;
 }
 async function checkStaticHTML(filePath, options = {}) {
     try {
         const html = await readFile(filePath, "utf-8");
-        const dom = new JSDOM(html);
+        const dom = new JSDOM(html, {
+            resources: "usable",
+            runScripts: "dangerously",
+            // Disable canvas to prevent JSDOM warnings
+            pretendToBeVisual: false,
+            virtualConsole: new JSDOM().window.console,
+        });
         const { window } = dom;
         const { document } = window;
+        // Stub canvas methods to prevent errors
+        if (window.HTMLCanvasElement) {
+            window.HTMLCanvasElement.prototype.getContext = () => null;
+        }
         // Configure axe
         axe.configure({
             allowedOrigins: ["<unsafe_all_origins>"],
             branding: {
-                application: "astro-accessibility",
+                application: "yak-a11y",
             },
         });
         // Run axe
@@ -49,10 +113,10 @@ async function checkStaticHTML(filePath, options = {}) {
 }
 async function waitForHydration(page, timeout) {
     try {
-        // Wait for Astro's hydration event
+        // Wait for Astro's hydration event with reduced timeout
         await page.waitForFunction(() => document.documentElement.dataset.hydrated === "true", { timeout });
-        // Add a small delay after hydration to ensure components are fully initialized
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Reduced delay for faster processing
+        await new Promise((resolve) => setTimeout(resolve, 100));
         return true;
     }
     catch (error) {
@@ -62,10 +126,10 @@ async function waitForHydration(page, timeout) {
 }
 async function detectFrameworks(page) {
     // Wait for page to be fully loaded and scripts to execute
-    await page.waitForFunction(() => document.readyState === 'complete' &&
+    await page.waitForFunction(() => document.readyState === "complete" &&
         performance.timing.domContentLoadedEventEnd > 0, { timeout: 10000 });
     // Add a small delay to ensure async scripts have time to initialize
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     return await page.evaluate(() => {
         const frameworks = new Set();
         // Check for React with more robust detection
@@ -76,8 +140,8 @@ async function detectFrameworks(page) {
                 (script.src.includes("react") ||
                     script.textContent?.includes("React"))) ||
             // Additional checks for React-specific DOM attributes
-            document.querySelector('[data-reactid]') ||
-            document.querySelector('[data-react-checksum]')) {
+            document.querySelector("[data-reactid]") ||
+            document.querySelector("[data-react-checksum]")) {
             frameworks.add("react");
         }
         // Add checks for other frameworks as needed
@@ -110,7 +174,7 @@ async function testDynamicContent(page, options) {
         document.querySelectorAll("button").forEach((btn) => {
             const promise = new Promise((resolve) => {
                 // Use requestAnimationFrame to ensure the DOM has time to update
-                btn.addEventListener('click', () => {
+                btn.addEventListener("click", () => {
                     requestAnimationFrame(() => setTimeout(resolve, 50));
                 }, { once: true });
                 btn.click();
@@ -120,7 +184,7 @@ async function testDynamicContent(page, options) {
         // Create a promise for each input event
         document.querySelectorAll("input").forEach((input) => {
             const promise = new Promise((resolve) => {
-                input.addEventListener('change', () => {
+                input.addEventListener("change", () => {
                     requestAnimationFrame(() => setTimeout(resolve, 50));
                 }, { once: true });
                 input.dispatchEvent(new Event("input"));
@@ -134,10 +198,10 @@ async function testDynamicContent(page, options) {
     // Wait for any AJAX updates with a reasonable timeout
     await Promise.race([
         page.waitForNetworkIdle(),
-        new Promise(resolve => setTimeout(resolve, options.ajaxTimeout || 5000))
+        new Promise((resolve) => setTimeout(resolve, options.ajaxTimeout || 5000)),
     ]);
     // Add a small delay to ensure any final DOM updates
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     // Run accessibility check after interactions
     // Create the AxePuppeteer instance
     const axePuppeteerInstance = new AxePuppeteer(page);
@@ -145,19 +209,19 @@ async function testDynamicContent(page, options) {
     violations.push(...results.violations);
     if (options.routeChanges) {
         // Test client-side navigation
-        const links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href^="/"]')).map(a => a.href));
+        const links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href^="/"]')).map((a) => a.href));
         for (const link of links) {
             try {
                 await page.click(`a[href="${new URL(link).pathname}"]`);
                 // Wait for navigation to complete with a timeout
                 await Promise.race([
-                    page.waitForNavigation({ waitUntil: 'networkidle0' }),
-                    new Promise(resolve => setTimeout(resolve, options.ajaxTimeout || 5000))
+                    page.waitForNavigation({ waitUntil: "networkidle0" }),
+                    new Promise((resolve) => setTimeout(resolve, options.ajaxTimeout || 5000)),
                 ]);
                 // Wait for any additional network activity to settle
                 await page.waitForNetworkIdle();
                 // Add a small delay to ensure DOM is stable
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise((resolve) => setTimeout(resolve, 100));
                 const navResults = await new AxePuppeteer(page).analyze();
                 violations.push(...navResults.violations);
             }
@@ -186,12 +250,12 @@ async function testAstroComponents(page, options) {
                     return container;
                 }, island.html, containerId);
                 // Wait for the island to be fully rendered and initialized
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise((resolve) => setTimeout(resolve, 500));
                 // Wait for any potential hydration or initialization
                 try {
                     await page.waitForFunction((id) => {
                         const container = document.getElementById(id);
-                        return container && !container.querySelector('[aria-busy="true"]');
+                        return (container && !container.querySelector('[aria-busy="true"]'));
                     }, { timeout: options.ajaxTimeout || 3000 }, containerId);
                 }
                 catch (error) {
@@ -240,11 +304,9 @@ To fix this:
         // Initialize dependencies before using them
         await initDependencies();
         console.log("Starting accessibility check for:", url);
-        // Launch new browser instance
-        browser = await puppeteer.launch({
-            headless: true, // Use headless mode for compatibility
-            args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        });
+        // Get browser instance (don't store as we'll manage lifecycle elsewhere)
+        const sharedBrowser = await getBrowser();
+        browser = sharedBrowser;
         // Create new page and set timeouts
         page = await browser.newPage();
         await page.setDefaultNavigationTimeout(30000);
@@ -288,7 +350,7 @@ To fix this:
         const axePuppeteerInstance = new AxePuppeteer(page);
         // Configure axe-core options if the API supports it
         // Some versions use configure() instead of options()
-        if (typeof axePuppeteerInstance.configure === 'function') {
+        if (typeof axePuppeteerInstance.configure === "function") {
             axePuppeteerInstance.configure({
                 runOnly: {
                     type: "tag",
@@ -297,7 +359,7 @@ To fix this:
                 reporter: "v2",
             });
         }
-        else if (typeof axePuppeteerInstance.options === 'function') {
+        else if (typeof axePuppeteerInstance.options === "function") {
             axePuppeteerInstance.options({
                 runOnly: {
                     type: "tag",
@@ -318,7 +380,8 @@ To fix this:
             err.message = "⚠️  Accessibility Check Error ⚠️\n\n" + err.message;
         }
         if (!err.message.includes("To fix this:")) {
-            err.message += "\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n";
+            err.message +=
+                "\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n";
         }
         throw err;
     }
@@ -326,9 +389,7 @@ To fix this:
         if (page) {
             await page.close();
         }
-        if (browser) {
-            await browser.close();
-        }
+        // Don't close shared browser here - it's managed globally
     }
 }
 export { checkAccessibility, checkStaticHTML };

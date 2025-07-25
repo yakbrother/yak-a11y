@@ -9,21 +9,83 @@ import type { Browser, Page } from "puppeteer";
 import puppeteerType from "puppeteer";
 import axePuppeteerType from "@axe-core/puppeteer";
 
+// Global browser instance for connection pooling
+let globalBrowser: Browser | null = null;
+let browserReuseCount = 0;
+const MAX_BROWSER_REUSE = 10; // Restart browser after 10 uses to prevent memory leaks
+
 // These will be initialized in an async context
 let puppeteer: typeof puppeteerType;
-let AxePuppeteer: any; // Using any temporarily to resolve type issues
+let AxePuppeteer: any;
 
-// Initialize dependencies
+// Cache for compiled axe configuration
+let axeConfigCache: any = null;
+
+// Initialize dependencies with caching
 async function initDependencies(): Promise<void> {
   if (!puppeteer) {
-    const puppeteerModule = await import("puppeteer");
+    const [puppeteerModule, axePuppeteerModule] = await Promise.all([
+      import("puppeteer"),
+      import("@axe-core/puppeteer"),
+    ]);
     puppeteer = puppeteerModule.default;
-  }
-  
-  if (!AxePuppeteer) {
-    const axePuppeteerModule = await import("@axe-core/puppeteer");
     AxePuppeteer = axePuppeteerModule.AxePuppeteer;
   }
+}
+
+// Get or create browser instance with connection pooling
+async function getBrowser(): Promise<Browser> {
+  await initDependencies();
+
+  if (globalBrowser && browserReuseCount < MAX_BROWSER_REUSE) {
+    browserReuseCount++;
+    return globalBrowser;
+  }
+
+  // Close existing browser if reuse limit reached
+  if (globalBrowser) {
+    await globalBrowser.close().catch(() => {}); // Ignore errors
+  }
+
+  globalBrowser = await puppeteer.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Reduces memory usage
+      "--disable-gpu",
+      "--no-first-run",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+    ],
+  });
+
+  browserReuseCount = 1;
+  return globalBrowser;
+}
+
+// Cleanup function for browser
+async function cleanupBrowser(): Promise<void> {
+  if (globalBrowser) {
+    await globalBrowser.close().catch(() => {});
+    globalBrowser = null;
+    browserReuseCount = 0;
+  }
+}
+
+// Get cached axe configuration
+function getAxeConfig() {
+  if (!axeConfigCache) {
+    axeConfigCache = {
+      runOnly: {
+        type: "tag",
+        values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"],
+      },
+      reporter: "v2",
+    };
+  }
+  return axeConfigCache;
 }
 
 interface AstroIsland {
@@ -41,18 +103,32 @@ interface AccessibilityOptions extends ReportOptions {
   strict?: boolean; // When true, fails if hydration doesn't complete
 }
 
-async function checkStaticHTML(filePath: string, options: ReportOptions = {}): Promise<{ violations: Result[] }> {
+async function checkStaticHTML(
+  filePath: string,
+  options: ReportOptions = {},
+): Promise<{ violations: Result[] }> {
   try {
     const html = await readFile(filePath, "utf-8");
-    const dom = new JSDOM(html);
+    const dom = new JSDOM(html, {
+      resources: "usable",
+      runScripts: "dangerously",
+      // Disable canvas to prevent JSDOM warnings
+      pretendToBeVisual: false,
+      virtualConsole: new JSDOM().window.console,
+    });
     const { window } = dom;
     const { document } = window;
+
+    // Stub canvas methods to prevent errors
+    if (window.HTMLCanvasElement) {
+      window.HTMLCanvasElement.prototype.getContext = () => null;
+    }
 
     // Configure axe
     axe.configure({
       allowedOrigins: ["<unsafe_all_origins>"],
       branding: {
-        application: "astro-accessibility",
+        application: "yak-a11y",
       },
     });
 
@@ -79,15 +155,15 @@ async function checkStaticHTML(filePath: string, options: ReportOptions = {}): P
 
 async function waitForHydration(page: Page, timeout: number): Promise<boolean> {
   try {
-    // Wait for Astro's hydration event
+    // Wait for Astro's hydration event with reduced timeout
     await page.waitForFunction(
       () => document.documentElement.dataset.hydrated === "true",
       { timeout },
     );
-    
-    // Add a small delay after hydration to ensure components are fully initialized
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+
+    // Reduced delay for faster processing
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return true;
   } catch (error) {
     console.warn(
@@ -100,14 +176,15 @@ async function waitForHydration(page: Page, timeout: number): Promise<boolean> {
 async function detectFrameworks(page: Page): Promise<string[]> {
   // Wait for page to be fully loaded and scripts to execute
   await page.waitForFunction(
-    () => document.readyState === 'complete' && 
-          performance.timing.domContentLoadedEventEnd > 0,
-    { timeout: 10000 }
+    () =>
+      document.readyState === "complete" &&
+      performance.timing.domContentLoadedEventEnd > 0,
+    { timeout: 10000 },
   );
-  
+
   // Add a small delay to ensure async scripts have time to initialize
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   return await page.evaluate(() => {
     const frameworks = new Set<string>();
 
@@ -123,12 +200,12 @@ async function detectFrameworks(page: Page): Promise<string[]> {
             script.textContent?.includes("React")),
       ) ||
       // Additional checks for React-specific DOM attributes
-      document.querySelector('[data-reactid]') ||
-      document.querySelector('[data-react-checksum]')
+      document.querySelector("[data-reactid]") ||
+      document.querySelector("[data-react-checksum]")
     ) {
       frameworks.add("react");
     }
-    
+
     // Add checks for other frameworks as needed
 
     return Array.from(frameworks);
@@ -147,9 +224,12 @@ async function findAstroIslands(page: Page): Promise<AstroIsland[]> {
   });
 }
 
-async function testDynamicContent(page: Page, options: AccessibilityOptions): Promise<Result[]> {
+async function testDynamicContent(
+  page: Page,
+  options: AccessibilityOptions,
+): Promise<Result[]> {
   const violations: Result[] = [];
-  
+
   // Ensure dependencies are initialized
   await initDependencies();
 
@@ -163,31 +243,39 @@ async function testDynamicContent(page: Page, options: AccessibilityOptions): Pr
   // Test after simulated user interactions with proper sequencing
   await page.evaluate(async () => {
     const interactionPromises: Promise<void>[] = [];
-    
+
     // Create a promise for each button click
     document.querySelectorAll("button").forEach((btn) => {
       const promise = new Promise<void>((resolve) => {
         // Use requestAnimationFrame to ensure the DOM has time to update
-        btn.addEventListener('click', () => {
-          requestAnimationFrame(() => setTimeout(resolve, 50));
-        }, { once: true });
+        btn.addEventListener(
+          "click",
+          () => {
+            requestAnimationFrame(() => setTimeout(resolve, 50));
+          },
+          { once: true },
+        );
         btn.click();
       });
       interactionPromises.push(promise);
     });
-    
+
     // Create a promise for each input event
     document.querySelectorAll("input").forEach((input) => {
       const promise = new Promise<void>((resolve) => {
-        input.addEventListener('change', () => {
-          requestAnimationFrame(() => setTimeout(resolve, 50));
-        }, { once: true });
+        input.addEventListener(
+          "change",
+          () => {
+            requestAnimationFrame(() => setTimeout(resolve, 50));
+          },
+          { once: true },
+        );
         input.dispatchEvent(new Event("input"));
         input.dispatchEvent(new Event("change"));
       });
       interactionPromises.push(promise);
     });
-    
+
     // Wait for all interactions to complete
     await Promise.all(interactionPromises);
   });
@@ -195,11 +283,11 @@ async function testDynamicContent(page: Page, options: AccessibilityOptions): Pr
   // Wait for any AJAX updates with a reasonable timeout
   await Promise.race([
     page.waitForNetworkIdle(),
-    new Promise(resolve => setTimeout(resolve, options.ajaxTimeout || 5000))
+    new Promise((resolve) => setTimeout(resolve, options.ajaxTimeout || 5000)),
   ]);
-  
+
   // Add a small delay to ensure any final DOM updates
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   // Run accessibility check after interactions
   // Create the AxePuppeteer instance
@@ -210,25 +298,31 @@ async function testDynamicContent(page: Page, options: AccessibilityOptions): Pr
   if (options.routeChanges) {
     // Test client-side navigation
     const links = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('a[href^="/"]') as NodeListOf<HTMLAnchorElement>).map(a => a.href),
+      Array.from(
+        document.querySelectorAll(
+          'a[href^="/"]',
+        ) as NodeListOf<HTMLAnchorElement>,
+      ).map((a) => a.href),
     );
 
     for (const link of links) {
       try {
         await page.click(`a[href="${new URL(link).pathname}"]`);
-        
+
         // Wait for navigation to complete with a timeout
         await Promise.race([
-          page.waitForNavigation({ waitUntil: 'networkidle0' }),
-          new Promise(resolve => setTimeout(resolve, options.ajaxTimeout || 5000))
+          page.waitForNavigation({ waitUntil: "networkidle0" }),
+          new Promise((resolve) =>
+            setTimeout(resolve, options.ajaxTimeout || 5000),
+          ),
         ]);
-        
+
         // Wait for any additional network activity to settle
         await page.waitForNetworkIdle();
-        
+
         // Add a small delay to ensure DOM is stable
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         const navResults = await new AxePuppeteer(page).analyze();
         violations.push(...navResults.violations);
       } catch (error) {
@@ -240,9 +334,12 @@ async function testDynamicContent(page: Page, options: AccessibilityOptions): Pr
   return violations;
 }
 
-async function testAstroComponents(page: Page, options: AccessibilityOptions): Promise<Result[]> {
+async function testAstroComponents(
+  page: Page,
+  options: AccessibilityOptions,
+): Promise<Result[]> {
   const violations: Result[] = [];
-  
+
   // Ensure dependencies are initialized
   await initDependencies();
 
@@ -253,30 +350,38 @@ async function testAstroComponents(page: Page, options: AccessibilityOptions): P
       if (options.frameworks?.includes(island.framework)) {
         // Test the island in isolation
         const containerId = `island-container-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        
-        await page.evaluate((html, id) => {
-          const container = document.createElement("div");
-          container.id = id;
-          container.innerHTML = html;
-          document.body.appendChild(container);
-          return container;
-        }, island.html, containerId);
-        
+
+        await page.evaluate(
+          (html, id) => {
+            const container = document.createElement("div");
+            container.id = id;
+            container.innerHTML = html;
+            document.body.appendChild(container);
+            return container;
+          },
+          island.html,
+          containerId,
+        );
+
         // Wait for the island to be fully rendered and initialized
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         // Wait for any potential hydration or initialization
         try {
           await page.waitForFunction(
             (id) => {
               const container = document.getElementById(id);
-              return container && !container.querySelector('[aria-busy="true"]');
+              return (
+                container && !container.querySelector('[aria-busy="true"]')
+              );
             },
             { timeout: options.ajaxTimeout || 3000 },
-            containerId
+            containerId,
           );
         } catch (error) {
-          console.warn(`Timeout waiting for island ${island.cid} to initialize`);
+          console.warn(
+            `Timeout waiting for island ${island.cid} to initialize`,
+          );
         }
 
         // Create the AxePuppeteer instance
@@ -288,7 +393,7 @@ async function testAstroComponents(page: Page, options: AccessibilityOptions): P
             component: `Astro Island (${island.framework}): ${island.cid}`,
           })),
         );
-        
+
         // Clean up - remove the container to avoid affecting subsequent tests
         await page.evaluate((id) => {
           const container = document.getElementById(id);
@@ -303,7 +408,10 @@ async function testAstroComponents(page: Page, options: AccessibilityOptions): P
   return violations;
 }
 
-async function checkAccessibility(url: string, options: AccessibilityOptions = {}): Promise<AxeResults> {
+async function checkAccessibility(
+  url: string,
+  options: AccessibilityOptions = {},
+): Promise<AxeResults> {
   let browser: Browser | undefined;
   let page: Page | undefined;
 
@@ -324,17 +432,15 @@ To fix this:
 4. For file URLs, use http-server or a local development server
 `);
     }
-    
+
     // Initialize dependencies before using them
     await initDependencies();
 
     console.log("Starting accessibility check for:", url);
 
-    // Launch new browser instance
-    browser = await puppeteer.launch({
-      headless: true,  // Use headless mode for compatibility
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    // Get browser instance (don't store as we'll manage lifecycle elsewhere)
+    const sharedBrowser = await getBrowser();
+    browser = sharedBrowser;
 
     // Create new page and set timeouts
     page = await browser.newPage();
@@ -379,10 +485,10 @@ To fix this:
     // Run accessibility tests
     // Create the AxePuppeteer instance
     const axePuppeteerInstance = new AxePuppeteer(page);
-    
+
     // Configure axe-core options if the API supports it
     // Some versions use configure() instead of options()
-    if (typeof axePuppeteerInstance.configure === 'function') {
+    if (typeof axePuppeteerInstance.configure === "function") {
       axePuppeteerInstance.configure({
         runOnly: {
           type: "tag",
@@ -390,7 +496,7 @@ To fix this:
         },
         reporter: "v2",
       });
-    } else if (typeof axePuppeteerInstance.options === 'function') {
+    } else if (typeof axePuppeteerInstance.options === "function") {
       axePuppeteerInstance.options({
         runOnly: {
           type: "tag",
@@ -399,10 +505,10 @@ To fix this:
         reporter: "v2",
       });
     }
-    
+
     // Run the analysis
     const results = await axePuppeteerInstance.analyze();
-      
+
     await generateReport(results, options);
     return results;
   } catch (error) {
@@ -413,16 +519,15 @@ To fix this:
     }
 
     if (!err.message.includes("To fix this:")) {
-      err.message += "\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n";
+      err.message +=
+        "\nTo get help:\n1. Check our troubleshooting guide in the README\n2. Open an issue on GitHub if the problem persists\n3. Make sure you have the latest version installed\n";
     }
     throw err;
   } finally {
     if (page) {
       await page.close();
     }
-    if (browser) {
-      await browser.close();
-    }
+    // Don't close shared browser here - it's managed globally
   }
 }
 
