@@ -61,6 +61,66 @@ yak-a11y --file dist/index.html dist/about.html --verbose
 yak-a11y --url https://example.com --verbose
 ```
 
+### Development Workflow Integration
+
+#### 1. Install as a Dev Dependency
+
+```bash
+# In your website project
+npm install --save-dev yak-a11y
+```
+
+#### 2. Add Scripts to package.json
+
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "a11y": "yak-a11y --url http://localhost:5173 --verbose",
+    "a11y:build": "npm run build && npm run preview & sleep 3 && yak-a11y --url http://localhost:4173 --verbose",
+    "a11y:files": "yak-a11y --file dist/*.html --verbose",
+    "test": "npm run a11y"
+  }
+}
+```
+
+#### 3. Development Workflow
+
+```bash
+# Terminal 1: Start your dev server
+npm run dev
+
+# Terminal 2: Check accessibility on live site
+npm run a11y
+
+# Or check built files
+npm run build
+npm run a11y:files
+```
+
+#### 4. CI/CD Integration
+
+```yaml
+# .github/workflows/a11y.yml
+name: Accessibility Check
+on: [push, pull_request]
+
+jobs:
+  a11y:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - run: npm ci
+      - run: npm run build
+      - run: npm run preview &
+      - run: sleep 3 && npx yak-a11y --url http://localhost:4173 --verbose
+```
+
 ### Try the Examples
 
 Test with the included example pages:
@@ -90,6 +150,91 @@ const fileResults = await checkStaticHTML("./dist/index.html", {
 });
 
 console.log(`Found ${results.violations.length} issues`);
+```
+
+### Real-World Examples
+
+#### Live Site Testing
+
+```bash
+# Test any live website
+yak-a11y --url https://example.com --verbose
+
+# Test your production site
+yak-a11y --url https://mywebsite.com --verbose
+
+# Test staging environment
+yak-a11y --url https://staging.mywebsite.com --verbose
+```
+
+#### Development Workflow
+
+```bash
+# 1. Start your development server
+npm run dev  # or yarn dev, pnpm dev
+
+# 2. In another terminal, check accessibility
+yak-a11y --url http://localhost:3000 --verbose
+
+# 3. Fix issues and recheck
+yak-a11y --url http://localhost:3000 --verbose
+```
+
+#### Build Pipeline Integration
+
+```bash
+# Check built files before deployment
+npm run build
+yak-a11y --file dist/*.html --verbose
+
+# Or check the preview server
+npm run preview &
+sleep 3
+yak-a11y --url http://localhost:4173 --verbose
+```
+
+#### Framework-Specific Examples
+
+**Vite/React/Vue:**
+
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "a11y": "yak-a11y --url http://localhost:5173 --verbose",
+    "a11y:build": "npm run build && npm run preview & sleep 3 && yak-a11y --url http://localhost:4173 --verbose"
+  }
+}
+```
+
+**Next.js:**
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "a11y": "yak-a11y --url http://localhost:3000 --verbose",
+    "a11y:build": "npm run build && npm run start & sleep 3 && yak-a11y --url http://localhost:3000 --verbose"
+  }
+}
+```
+
+**Astro:**
+
+```json
+{
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "a11y": "yak-a11y --url http://localhost:4321 --verbose",
+    "a11y:build": "npm run build && npm run preview & sleep 3 && yak-a11y --url http://localhost:4321 --verbose"
+  }
+}
 ```
 
 ## 📊 Sample Output

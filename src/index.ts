@@ -9,11 +9,6 @@ import type { Browser, Page } from "puppeteer";
 import puppeteerType from "puppeteer";
 import axePuppeteerType from "@axe-core/puppeteer";
 
-// Global browser instance for connection pooling
-let globalBrowser: Browser | null = null;
-let browserReuseCount = 0;
-const MAX_BROWSER_REUSE = 10; // Restart browser after 10 uses to prevent memory leaks
-
 // These will be initialized in an async context
 let puppeteer: typeof puppeteerType;
 let AxePuppeteer: any;
@@ -30,47 +25,6 @@ async function initDependencies(): Promise<void> {
     ]);
     puppeteer = puppeteerModule.default;
     AxePuppeteer = axePuppeteerModule.AxePuppeteer;
-  }
-}
-
-// Get or create browser instance with connection pooling
-async function getBrowser(): Promise<Browser> {
-  await initDependencies();
-
-  if (globalBrowser && browserReuseCount < MAX_BROWSER_REUSE) {
-    browserReuseCount++;
-    return globalBrowser;
-  }
-
-  // Close existing browser if reuse limit reached
-  if (globalBrowser) {
-    await globalBrowser.close().catch(() => {}); // Ignore errors
-  }
-
-  globalBrowser = await puppeteer.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage", // Reduces memory usage
-      "--disable-gpu",
-      "--no-first-run",
-      "--disable-background-timer-throttling",
-      "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding",
-    ],
-  });
-
-  browserReuseCount = 1;
-  return globalBrowser;
-}
-
-// Cleanup function for browser
-async function cleanupBrowser(): Promise<void> {
-  if (globalBrowser) {
-    await globalBrowser.close().catch(() => {});
-    globalBrowser = null;
-    browserReuseCount = 0;
   }
 }
 
@@ -438,9 +392,20 @@ To fix this:
 
     console.log("Starting accessibility check for:", url);
 
-    // Get browser instance (don't store as we'll manage lifecycle elsewhere)
-    const sharedBrowser = await getBrowser();
-    browser = sharedBrowser;
+    // Initialize dependencies before using them
+    await initDependencies();
+
+    // Launch new browser instance
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+      ],
+    });
 
     // Create new page and set timeouts
     page = await browser.newPage();
@@ -527,7 +492,9 @@ To fix this:
     if (page) {
       await page.close();
     }
-    // Don't close shared browser here - it's managed globally
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 

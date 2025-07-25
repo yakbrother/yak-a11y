@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Website</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      .low-contrast {
+        color: #999;
+      } /* Poor contrast */
+      .button {
+        padding: 10px 20px;
+        background: #ddd;
+        border: none;
+        cursor: pointer;
+      }
+      .image {
+        width: 300px;
+        height: 200px;
+        background: #f0f0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to My Website</h1>
+
+    <!-- Accessibility issues for testing -->
+    <img src="hero.jpg" class="image" />
+    <!-- Missing alt text -->
+
+    <p class="low-contrast">This text has poor contrast</p>
+
+    <form>
+      <input type="email" placeholder="Enter email" />
+      <!-- Missing label -->
+      <button class="button">Submit</button>
+    </form>
+
+    <div onclick="alert('clicked')" style="cursor: pointer">Click me</div>
+    <!-- Should be button -->
+
+    <script>
+      // Some interactive content
+      document.querySelector(".button").addEventListener("click", () => {
+        alert("Form submitted!");
+      });
+    </script>
+  </body>
+</html>
