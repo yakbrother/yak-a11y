@@ -1,6 +1,6 @@
 # 🦌 Yak A11y
 
-A fast, comprehensive accessibility checker that provides detailed explanations and actionable fixes. Get beautiful, educational reports to improve your website's accessibility compliance.
+A fast, comprehensive accessibility checker that provides detailed explanations and actionable fixes. Get beautiful, educational terminal reports to improve your website's accessibility compliance.
 
 [![npm version](https://badge.fury.io/js/yak-a11y.svg)](https://badge.fury.io/js/yak-a11y)
 [![npm downloads](https://img.shields.io/npm/dm/yak-a11y.svg)](https://www.npmjs.com/package/yak-a11y)
