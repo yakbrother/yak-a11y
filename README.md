@@ -2,6 +2,10 @@
 
 A fast, comprehensive accessibility checker that provides detailed explanations and actionable fixes. Get beautiful, educational reports to improve your website's accessibility compliance.
 
+[![npm version](https://badge.fury.io/js/yak-a11y.svg)](https://badge.fury.io/js/yak-a11y)
+[![npm downloads](https://img.shields.io/npm/dm/yak-a11y.svg)](https://www.npmjs.com/package/yak-a11y)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## ✨ Features
 
 - 🔍 **Comprehensive scanning** - Checks WCAG 2.1 AA, Section 508, and best practices
@@ -13,10 +17,19 @@ A fast, comprehensive accessibility checker that provides detailed explanations 
 
 ## 🚀 Quick Start
 
+### Install
+
 ```bash
 # Install globally
 npm install -g yak-a11y
 
+# Or install as a dev dependency in your project
+npm install --save-dev yak-a11y
+```
+
+### Use
+
+```bash
 # Check your live website
 yak-a11y --url http://localhost:3000
 
@@ -29,6 +42,8 @@ yak-a11y --url http://localhost:3000 --verbose
 
 ## 📦 Installation
 
+### Global Installation
+
 ```bash
 # npm
 npm install -g yak-a11y
@@ -38,6 +53,19 @@ pnpm add -g yak-a11y
 
 # yarn
 yarn global add yak-a11y
+```
+
+### Project Installation
+
+```bash
+# npm
+npm install --save-dev yak-a11y
+
+# pnpm
+pnpm add -D yak-a11y
+
+# yarn
+yarn add -D yak-a11y
 ```
 
 ## 🛠️ Usage
@@ -274,9 +302,10 @@ Issue 1
 
 ### Standards Compliance
 
-- WCAG 2.1 Level A & AA
-- Section 508
-- Best practices from axe-core
+- **WCAG 2.1** Level A & AA
+- **Section 508** compliance
+- **Best practices** from axe-core
+- **WAI-ARIA** guidelines
 
 ## ⚡ Performance Features
 
@@ -312,6 +341,21 @@ npm run test              # Run test suite
 npm run test:coverage     # Coverage report
 npm run examples          # Start test server
 ```
+
+## 🏗️ Build Scripts
+
+```bash
+npm run build              # Compile TypeScript
+npm run dev               # Watch mode
+npm run test              # Run test suite
+npm run test:coverage     # Coverage report
+npm run examples          # Start test server
+```
+
+## 📋 Requirements
+
+- **Node.js** 16 or higher
+- **npm** 7 or higher (or yarn/pnpm)
 
 ## 🐛 Troubleshooting
 
@@ -350,6 +394,16 @@ MIT - See [LICENSE](LICENSE) for details.
 ## 🤝 Contributing
 
 Contributions welcome! Please read our contributing guidelines and open an issue first for major changes.
+
+## 📄 License
+
+MIT - See [LICENSE](LICENSE) for details.
+
+## 🔗 Links
+
+- [npm package](https://www.npmjs.com/package/yak-a11y)
+- [GitHub repository](https://github.com/yakbrother/yak-a11y)
+- [Issues](https://github.com/yakbrother/yak-a11y/issues)
 
 ---
 
