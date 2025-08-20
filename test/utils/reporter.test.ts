@@ -6,6 +6,7 @@ import type { Result } from 'axe-core';
 describe('reporter', () => {
   let consoleOutput: string[] = [];
   const mockLog = vi.fn((...args: any[]) => consoleOutput.push(args.join(' ')));
+  const originalLog = console.log;
   
   beforeAll(() => {
     console.log = mockLog;
@@ -18,7 +19,7 @@ describe('reporter', () => {
   });
 
   afterAll(() => {
-    console.log = console.log; // Restore original console.log
+    console.log = originalLog; // Restore original console.log
   });
 
   it('should report no violations correctly', async () => {
@@ -61,8 +62,28 @@ describe('reporter', () => {
 
     await generateReport(results, { verbose: true });
     
-    expect(consoleOutput.some(output => 
+    expect(consoleOutput.some(output =>
       output.includes('Detailed Documentation')
     )).toBe(true);
+  });
+
+  it('should handle violations without html snippets', async () => {
+    const results = {
+      violations: [
+        {
+          ...mockViolation,
+          nodes: [
+            {
+              failureSummary: 'Fix any of the following: Element does not have an alt attribute'
+            }
+          ]
+        }
+      ]
+    };
+
+    await generateReport(results);
+
+    const outputString = consoleOutput.join('\n');
+    expect(outputString).toContain('Unknown element');
   });
 });
