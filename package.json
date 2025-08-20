@@ -45,7 +45,8 @@
     "commander": "^11.1.0",
     "jsdom": "^26.0.0",
     "puppeteer": "^24.4.0",
-    "sirv": "^3.0.1"
+    "sirv": "^3.0.1",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",

@@ -6,8 +6,10 @@ import type { Result } from 'axe-core';
 describe('reporter', () => {
   let consoleOutput: string[] = [];
   const mockLog = vi.fn((...args: any[]) => consoleOutput.push(args.join(' ')));
-  
+  let originalLog: typeof console.log;
+
   beforeAll(() => {
+    originalLog = console.log;
     console.log = mockLog;
     chalk.level = 0; // Disable colors for testing
   });
@@ -18,7 +20,7 @@ describe('reporter', () => {
   });
 
   afterAll(() => {
-    console.log = console.log; // Restore original console.log
+    console.log = originalLog; // Restore original console.log
   });
 
   it('should report no violations correctly', async () => {

@@ -3,6 +3,7 @@ import type { AxeResults } from 'axe-core';
 // Import Server type from http instead of vite to avoid type conflicts
 import type { Server as HttpServer } from 'node:http';
 import chalk from 'chalk';
+import fetch from 'node-fetch';
 
 interface AstroConfig {
   server?: {
