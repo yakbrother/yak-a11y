@@ -38,7 +38,7 @@
     "check": "yak-a11y"
   },
   "dependencies": {
-    "@axe-core/puppeteer": "^4.10.1",
+    "@axe-core/puppeteer": "^4.10.2",
     "axe-core": "^4.10.3",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
