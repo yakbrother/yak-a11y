@@ -126,7 +126,10 @@ function enhanceFailureSummary(summary: string, violation: Result): string {
   return summary;
 }
 
-function cleanHtmlString(html: string): string {
+function cleanHtmlString(html?: string): string {
+  if (!html) {
+    return 'Unknown element';
+  }
   return html
     .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
     .replace(/\s*([<>])\s*/g, '$1')  // Remove spaces around < and >
