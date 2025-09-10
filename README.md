@@ -39,10 +39,10 @@ Run the accessibility checker using:
 
 ```bash
 # Basic check
-yak-a11y http://localhost:3000/perfect.html
+yak-a11y --url http://localhost:3000/perfect.html
 
 # Check with detailed output
-yak-a11y http://localhost:3000/image-form-issues.html --verbose
+yak-a11y --verbose --url http://localhost:3000/image-form-issues.html
 ```
 
 ## Usage
@@ -54,23 +54,15 @@ You can use this package in several ways:
 Run accessibility checks directly from the command line:
 
 ```bash
-# Basic check
-yak-a11y http://localhost:3000
+# Check a URL
+yak-a11y --url http://localhost:3000
 
 # Show detailed information
-yak-a11y --verbose http://localhost:3000
+yak-a11y --verbose --url http://localhost:3000
 
-# Skip dynamic content testing
-yak-a11y --skip-dynamic http://localhost:3000
-
-# Set hydration timeout
-yak-a11y --hydration-timeout 8000 http://localhost:3000
-
-# Test specific frameworks
-yak-a11y --frameworks react,vue http://localhost:3000
-
-# Auto-detect frameworks (default)
-yak-a11y --auto-detect http://localhost:3000
+# Check one or more static HTML files
+yak-a11y --file dist/index.html
+yak-a11y --verbose --file page1.html page2.html
 ```
 
 ### 2. Astro Integration
@@ -194,12 +186,7 @@ jobs:
         id: a11y
         run: |
           sleep 3  # Wait for server to start
-          npx yak-a11y http://localhost:3000 \
-            --verbose \
-            --frameworks astro,react \
-            --hydration-timeout 10000 \
-            --output-format json \
-            --report-file a11y-report.json
+          npx yak-a11y --url http://localhost:3000 --verbose
 
       - name: Upload accessibility report
         if: always()
@@ -224,7 +211,7 @@ jobs:
             ### Quick Fix
             Run locally with:
             \`\`\`bash
-            npx yak-a11y http://localhost:3000 --verbose
+            npx yak-a11y --url http://localhost:3000 --verbose
             \`\`\`
             
             [View detailed report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
@@ -295,34 +282,14 @@ accessibility:
     # Run checks
     - |
       # Note: If using Astro integration, these checks run automatically during build
-      npx yak-a11y http://localhost:3000 \
-        --verbose \
-        --frameworks astro,react \
-        --hydration-timeout 10000 \
-        --output-format json \
-        --report-file a11y-report.json
+      npx yak-a11y --url http://localhost:3000 --verbose
   artifacts:
-    reports:
-      accessibility: a11y-report.json
-    expose_as: 'Accessibility Report'
     when: always
   # Optional: Only run on main branch and MRs
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # Add MR comments
-  after_script:
-    - |
-      if [ -f a11y-report.json ] && [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
-        issues=$(jq '.violations | length' a11y-report.json)
-        echo "Found $issues accessibility issues."
-        echo "### Quick Fix 🔧" >> report.md
-        echo 'Run locally with:' >> report.md
-        echo '```bash' >> report.md
-        echo 'npx yak-a11y http://localhost:3000 --verbose' >> report.md
-        echo '```' >> report.md
-      fi
-```
+``` 
 
 2. Configure GitLab CI/CD settings:
    - Go to Settings > CI/CD
@@ -353,12 +320,7 @@ For any CI platform, use these settings:
 
 ```bash
 # Core command
-npx yak-a11y <url> \
-  --verbose \
-  --frameworks astro,react \
-  --hydration-timeout 10000 \
-  --output-format json \
-  --report-file a11y-report.json
+npx yak-a11y --url <url> --verbose
 
 # Exit codes
 # 0: No issues found
@@ -470,29 +432,25 @@ For detailed guidelines and best practices, see [DOCS.md](DOCS.md).
    - Review build configuration
 
 3. **Performance**
-   - Adjust hydration timeout: `yak-a11y --hydration-timeout 10000`
-   - Skip dynamic checks: `yak-a11y --skip-dynamic`
-   - Test specific pages instead of full site
-   - Use `checkInterval` in Astro integration for slower machines
+  - Test specific pages instead of full site
+  - Use `checkInterval` in Astro integration for slower machines
 
 ### Command Reference
 
 ```bash
-yak-a11y [options] <url>
+yak-a11y [options]
 
 Options:
-  --verbose             Show detailed reports
-  --skip-dynamic        Skip dynamic content checks
-  --frameworks          Specify frameworks to check (e.g., react,vue)
-  --hydration-timeout   Set component hydration timeout in ms (default: 5000)
-  --auto-detect         Auto-detect frameworks (default: true)
-  --help                Show help
-  --version             Show version
+  --file <paths...>   Check one or more HTML files
+  --url <url>         Check a URL
+  --verbose           Show detailed reports
+  --help              Show help
+  --version           Show version
 
 Examples:
-  yak-a11y http://localhost:3000
-  yak-a11y --verbose --frameworks react,vue http://localhost:3000
-  yak-a11y --skip-dynamic --hydration-timeout 10000 http://localhost:3000
+  yak-a11y --url http://localhost:3000
+  yak-a11y --verbose --url http://localhost:3000
+  yak-a11y --file dist/index.html
 ```
 
 ## License
