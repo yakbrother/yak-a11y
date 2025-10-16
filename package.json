@@ -43,10 +43,9 @@
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^11.1.0",
-    "jsdom": "^26.0.0",
-    "puppeteer": "^24.4.0",
-    "sirv": "^3.0.1",
-    "node-fetch": "^2.7.0"
+    "jsdom": "^26.1.0",
+    "puppeteer": "^24.15.0",
+    "sirv": "^3.0.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
