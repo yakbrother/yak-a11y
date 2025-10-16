@@ -95,9 +95,6 @@ describe('index', () => {
     beforeEach(() => {
       // Reset mocks
       vi.clearAllMocks();
-      
-      // Reset mocks
-      vi.clearAllMocks();
     });
 
     it('should check static HTML content', async () => {
