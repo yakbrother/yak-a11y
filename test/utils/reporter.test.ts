@@ -9,6 +9,7 @@ describe('reporter', () => {
   const originalLog = console.log;
   
   beforeAll(() => {
+    originalLog = console.log;
     console.log = mockLog;
     chalk.level = 0; // Disable colors for testing
   });
