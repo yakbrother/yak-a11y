@@ -39,10 +39,10 @@ Run the accessibility checker using:
 
 ```bash
 # Basic check
-yak-a11y http://localhost:3000/perfect.html
+yak-a11y --url http://localhost:3000/perfect.html
 
 # Check with detailed output
-yak-a11y http://localhost:3000/image-form-issues.html --verbose
+yak-a11y --url http://localhost:3000/image-form-issues.html --verbose
 ```
 
 ## Usage
@@ -55,22 +55,13 @@ Run accessibility checks directly from the command line:
 
 ```bash
 # Basic check
-yak-a11y http://localhost:3000
+yak-a11y --url http://localhost:3000
+
+# Check a local file
+yak-a11y --file ./dist/index.html
 
 # Show detailed information
-yak-a11y --verbose http://localhost:3000
-
-# Skip dynamic content testing
-yak-a11y --skip-dynamic http://localhost:3000
-
-# Set hydration timeout
-yak-a11y --hydration-timeout 8000 http://localhost:3000
-
-# Test specific frameworks
-yak-a11y --frameworks react,vue http://localhost:3000
-
-# Auto-detect frameworks (default)
-yak-a11y --auto-detect http://localhost:3000
+yak-a11y --url http://localhost:3000 --verbose
 ```
 
 ### 2. Astro Integration
@@ -189,52 +180,10 @@ jobs:
 
       - name: Start production server
         run: npx serve dist &
-
       - name: Run accessibility check
-        id: a11y
         run: |
           sleep 3  # Wait for server to start
-          npx yak-a11y http://localhost:3000 \
-            --verbose \
-            --frameworks astro,react \
-            --hydration-timeout 10000 \
-            --output-format json \
-            --report-file a11y-report.json
-
-      - name: Upload accessibility report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: accessibility-report
-          path: a11y-report.json
-
-      # Optional: Comment results on PR
-      - name: Comment PR
-        if: github.event_name == 'pull_request' && steps.a11y.outcome != 'success'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('a11y-report.json', 'utf8'));
-            const issues = report.violations.length;
-            
-            const body = `## Accessibility Check Results ♿️
-            Found ${issues} accessibility issues. Please check the full report in the artifacts.
-            
-            ### Quick Fix
-            Run locally with:
-            \`\`\`bash
-            npx yak-a11y http://localhost:3000 --verbose
-            \`\`\`
-            
-            [View detailed report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          npx yak-a11y --url http://localhost:3000 --verbose
 ```
 
 2. Configure options in your repository:
@@ -289,39 +238,15 @@ accessibility:
   script:
     # Install and start server
     - npm install -g serve
-    - serve dist & 
+    - serve dist &
     - sleep 3  # Wait for server
-    
+
     # Run checks
-    - |
-      # Note: If using Astro integration, these checks run automatically during build
-      npx yak-a11y http://localhost:3000 \
-        --verbose \
-        --frameworks astro,react \
-        --hydration-timeout 10000 \
-        --output-format json \
-        --report-file a11y-report.json
-  artifacts:
-    reports:
-      accessibility: a11y-report.json
-    expose_as: 'Accessibility Report'
-    when: always
-  # Optional: Only run on main branch and MRs
+    - npx yak-a11y --url http://localhost:3000 --verbose
+  # Optional: Only run on main branch and merge requests
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # Add MR comments
-  after_script:
-    - |
-      if [ -f a11y-report.json ] && [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
-        issues=$(jq '.violations | length' a11y-report.json)
-        echo "Found $issues accessibility issues."
-        echo "### Quick Fix 🔧" >> report.md
-        echo 'Run locally with:' >> report.md
-        echo '```bash' >> report.md
-        echo 'npx yak-a11y http://localhost:3000 --verbose' >> report.md
-        echo '```' >> report.md
-      fi
 ```
 
 2. Configure GitLab CI/CD settings:
@@ -335,50 +260,16 @@ accessibility:
 [![Pipeline Status](https://gitlab.com/<username>/<repo>/badges/main/pipeline.svg)](https://gitlab.com/<username>/<repo>/-/commits/main)
 ```
 
-4. View reports:
+4. View results:
    - Go to CI/CD > Pipelines
    - Click on the latest pipeline
-   - View the accessibility report under "Artifacts"
+   - Review the job log for accessibility results
 
 For other CI platforms, you can follow similar patterns. All examples use the same core components:
 
 1. **Setup**: Install Node.js and dependencies
 2. **Build**: Build your site
 3. **Test**: Run accessibility checks
-4. **Report**: Save and publish results
-
-##### Common Configuration
-
-For any CI platform, use these settings:
-
-```bash
-# Core command
-npx yak-a11y <url> \
-  --verbose \
-  --frameworks astro,react \
-  --hydration-timeout 10000 \
-  --output-format json \
-  --report-file a11y-report.json
-
-# Exit codes
-# 0: No issues found
-# 1: Accessibility issues found
-# 2: Runtime error
-```
-
-##### Environment Variables
-
-You can configure the checker using environment variables in your CI platform:
-
-```bash
-# Optional environment variables
-YAK_FRAMEWORKS=astro,react     # Frameworks to check
-YAK_TIMEOUT=10000             # Hydration timeout in ms
-YAK_REPORT_FILE=custom.json   # Custom report location
-YAK_FAIL_LEVEL=error         # fail on error|warning|all
-```
-
-These settings work consistently across all CI platforms while maintaining the single command approach.
 
 ### 3. Programmatic Usage
 
@@ -470,29 +361,25 @@ For detailed guidelines and best practices, see [DOCS.md](DOCS.md).
    - Review build configuration
 
 3. **Performance**
-   - Adjust hydration timeout: `yak-a11y --hydration-timeout 10000`
-   - Skip dynamic checks: `yak-a11y --skip-dynamic`
    - Test specific pages instead of full site
    - Use `checkInterval` in Astro integration for slower machines
 
 ### Command Reference
 
 ```bash
-yak-a11y [options] <url>
+yak-a11y [options]
 
 Options:
+  --url <address>       Check a remote URL
+  --file <path>         Check a local HTML file
   --verbose             Show detailed reports
-  --skip-dynamic        Skip dynamic content checks
-  --frameworks          Specify frameworks to check (e.g., react,vue)
-  --hydration-timeout   Set component hydration timeout in ms (default: 5000)
-  --auto-detect         Auto-detect frameworks (default: true)
   --help                Show help
   --version             Show version
 
 Examples:
-  yak-a11y http://localhost:3000
-  yak-a11y --verbose --frameworks react,vue http://localhost:3000
-  yak-a11y --skip-dynamic --hydration-timeout 10000 http://localhost:3000
+  yak-a11y --url http://localhost:3000
+  yak-a11y --file ./dist/index.html
+  yak-a11y --url http://localhost:3000 --verbose
 ```
 
 ## License
