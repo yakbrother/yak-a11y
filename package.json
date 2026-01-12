@@ -44,7 +44,7 @@
     "cli-table3": "^0.6.5",
     "commander": "^11.1.0",
     "jsdom": "^26.1.0",
-    "puppeteer": "^24.15.0",
+    "puppeteer": "^24.34.0",
     "sirv": "^3.0.2"
   },
   "devDependencies": {
